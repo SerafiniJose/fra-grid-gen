@@ -244,8 +244,9 @@ def build_grid(request: BuildRequest, *, results_root=None, on_progress=None, ca
     root = Path(results_root) if results_root is not None else results_dir()
     _validate(request, root)
     part = oi.new_part_folder(root, request.name)  # this run's own: never shared with another session
-    work = Path(tempfile.mkdtemp(prefix=f"{request.name}-", dir=local_scratch_dir()))
+    work = None
     try:
+        work = Path(tempfile.mkdtemp(prefix=f"{request.name}-", dir=local_scratch_dir()))
         record, files, n_tiles, total = _build_into(request, part, work, t0, on_progress, cancel, now)
         _check(cancel)
         folder = oi.commit_part(root, request.name, part, overwrite=request.overwrite)
@@ -253,7 +254,8 @@ def build_grid(request: BuildRequest, *, results_root=None, on_progress=None, ca
         shutil.rmtree(part, ignore_errors=True)
         raise
     finally:
-        shutil.rmtree(work, ignore_errors=True)
+        if work is not None:
+            shutil.rmtree(work, ignore_errors=True)
     logger.info("Grid ready: %s cells", f"{total:,}")
     return BuildResult(
         name=request.name, folder=folder, files=tuple(folder / f for f in files), cell_count=total,
