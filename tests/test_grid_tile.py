@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -61,5 +62,40 @@ def test_result_card_lists_files_with_sizes(tmp_path):
         texts = [w.children[0] for w in rc.find(v.Html).widgets if w.children and isinstance(w.children[0], str)]
         assert any(s.startswith("g.gpkg · ") and "KB" in s for s in texts), texts
         assert str(tmp_path) in texts
+    finally:
+        rc.close()
+
+
+def _button_labels(rc):
+    return [w.children[0] for w in rc.find(v.Btn).widgets if w.children and isinstance(w.children[0], str)]
+
+
+def test_cancel_stays_reachable_when_the_aoi_is_cleared_mid_job(results_root):
+    from component.model.state_manager import AppState, JobState
+    from _notification_host import render_under_notifications
+
+    state = AppState()  # aoi_info is None, e.g. the AOI tab is resolving a new AOI
+    state.job.set(JobState(status="running", name="g", level=17, done=1, total=4, cells=50))
+    state.cancel_event.set(threading.Event())
+    box_, rc = render_under_notifications(lambda: gt.GridTile(state=state, map_=None), handle_error=False)
+    try:
+        cancel = [w for w in rc.find(v.Btn).widgets if w.children == ["Cancel"]]
+        assert len(cancel) == 1, _button_labels(rc)
+        cancel[0].fire_event("click", {})
+        assert state.cancel_event.value.is_set()
+        assert "Generate grid" not in _button_labels(rc)
+    finally:
+        rc.close()
+
+
+def test_failed_message_shows_without_an_aoi(results_root):
+    from component.model.state_manager import AppState, JobState
+    from _notification_host import render_under_notifications
+
+    state = AppState()
+    state.job.set(JobState(status="failed", name="g", level=17, message="boom happened"))
+    box_, rc = render_under_notifications(lambda: gt.GridTile(state=state, map_=None), handle_error=False)
+    try:
+        assert any("boom happened" in str(w.children) for w in rc.find(v.Alert).widgets)
     finally:
         rc.close()

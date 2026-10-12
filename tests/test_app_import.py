@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import solara
 
+from component.model.state_manager import JobState
 from component.scripts.outputs_index import STALE_AGE_S
 
 
@@ -23,7 +24,18 @@ def test_app_imports_cleans_stale_folders_and_exposes_routes(results_root):
 
 def test_grid_tab_disabled_until_aoi_exists(results_root):
     app = importlib.import_module("app")
-    state = SimpleNamespace(aoi_info=solara.reactive(None))
+    state = SimpleNamespace(aoi_info=solara.reactive(None), job=solara.reactive(JobState()))
     assert app.grid_tab_disabled(state) is True
     state.aoi_info.value = object()
     assert app.grid_tab_disabled(state) is False
+
+
+def test_grid_tab_stays_enabled_while_a_job_runs(results_root):
+    from component.model.state_manager import AppState, JobState
+
+    app = importlib.import_module("app")
+    state = AppState()
+    state.job.set(JobState(status="running", name="g", level=17))
+    assert app.grid_tab_disabled(state) is False
+    state.job.set(JobState(status="done", name="g", level=17))
+    assert app.grid_tab_disabled(state) is True

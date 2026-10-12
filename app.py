@@ -51,8 +51,12 @@ def on_kernel_start():
 
 
 def grid_tab_disabled(state) -> bool:
-    """The Grid tab needs an AOI to estimate and generate for."""
-    return state.aoi_info.value is None
+    """The Grid tab needs an AOI to estimate and generate for.
+
+    It stays open while a job runs, even when the AOI is cleared or being
+    re-resolved, so Cancel and the progress stay reachable.
+    """
+    return state.aoi_info.value is None and not state.job.value.running
 
 
 @solara.component
@@ -61,7 +65,8 @@ def WorkflowTabs(map_):
     grid_disabled = grid_tab_disabled(app_state)
 
     # AOI cleared while on the Grid tab: fall back to the AOI tab (in an
-    # effect, never during render).
+    # effect, never during render). Never while a job runs: grid_disabled is
+    # False then.
     def back_to_aoi():
         if grid_disabled and app_state.active_tab.value == 1:
             app_state.active_tab.set(0)

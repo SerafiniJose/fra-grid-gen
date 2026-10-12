@@ -104,6 +104,41 @@ def ResultCard(result, map_, on_show, on_metadata):
 
 
 @solara.component
+def JobPanel(state, map_, root, on_metadata, show_cancel):
+    """Job controls and outcome: Cancel, progress, failed/cancelled message, result card.
+
+    Rendered with or without an AOI, so a job stays cancellable while the AOI
+    tab re-resolves (``aoi_info`` is None then).
+    """
+    job = state.job.value
+    if job.running:
+        if show_cancel:
+            with solara.Row(justify="end"):
+                solara.Button(t("grid.cancel"), on_click=lambda: cancel_generation(state), outlined=True)
+        pct = int(job.done * 100 / job.total) if job.total else 0
+        rv.ProgressLinear(value=pct, indeterminate=job.total == 0, color="primary", height=6)
+        if job.total:
+            solara.Text(t("grid.progress", done=job.done, total=job.total, cells=f"{job.cells:,}"),
+                        style="font-size: 0.8rem;")
+    elif job.status == "failed":
+        solara.Error(job.message)
+    elif job.status == "cancelled":
+        solara.Warning(job.message)
+
+    result = state.last_output.value
+    if job.status == "done" and result is not None:
+        def show():
+            source = preview_source(result.folder, result.name, result.metadata["run"]["formats"])
+            if source is None or map_ is None:
+                return
+            map_layers.show_grid(map_, source[0], source[1], name=result.name)
+            state.preview_name.set(result.name)
+
+        ResultCard(result=result, map_=map_, on_show=show,
+                   on_metadata=lambda: on_metadata(load_output(root, result.name)))
+
+
+@solara.component
 def GridTile(state, map_):
     notifier = use_notifications()
     engine_ok = solara.use_memo(_engine_ok, [])
@@ -124,7 +159,11 @@ def GridTile(state, map_):
     )
 
     if info is None:
-        solara.Info(t("grid.locked"))
+        with solara.Column(style="gap: 12px;"):
+            if not state.job.value.running:
+                solara.Info(t("grid.locked"))
+            JobPanel(state=state, map_=map_, root=results_dir(), on_metadata=set_meta_open, show_cancel=True)
+        MetadataDialog(output=meta_open, on_close=lambda: set_meta_open(None))
         return
 
     est = next(e for e in estimates if e.stats.level == level)
@@ -203,28 +242,7 @@ def GridTile(state, map_):
             solara.Button(t("grid.generate"), color="primary", disabled=reason is not None,
                           on_click=lambda: advance(confirm_steps(est.verdict, name_state)))
 
-        if job.running:
-            pct = int(job.done * 100 / job.total) if job.total else 0
-            rv.ProgressLinear(value=pct, indeterminate=job.total == 0, color="primary", height=6)
-            if job.total:
-                solara.Text(t("grid.progress", done=job.done, total=job.total, cells=f"{job.cells:,}"),
-                            style="font-size: 0.8rem;")
-        elif job.status == "failed":
-            solara.Error(job.message)
-        elif job.status == "cancelled":
-            solara.Warning(job.message)
-
-        result = state.last_output.value
-        if job.status == "done" and result is not None:
-            def show():
-                source = preview_source(result.folder, result.name, result.metadata["run"]["formats"])
-                if source is None:
-                    return
-                map_layers.show_grid(map_, source[0], source[1], name=result.name)
-                state.preview_name.set(result.name)
-
-            ResultCard(result=result, map_=map_, on_show=show,
-                       on_metadata=lambda: set_meta_open(load_output(root, result.name)))
+        JobPanel(state=state, map_=map_, root=root, on_metadata=set_meta_open, show_cancel=False)
 
     step = pending[0] if pending else None
     ConfirmDialog(
