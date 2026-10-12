@@ -30,10 +30,10 @@ MUTED = "opacity: 0.7;"
 # Paths and file names: monospace keeps them scannable and stops a long one
 # from re-flowing the sentence above it.
 _DETAIL_STYLE = (
-    "font-family: ui-monospace, SFMono-Regular, Menlo, monospace;"
+    "display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;"
     "font-size: 0.78rem; line-height: 1.5; overflow-wrap: anywhere;" + MUTED
 )
-_NOTE_STYLE = "font-size: 0.8rem; line-height: 1.4;" + MUTED
+_NOTE_STYLE = "display: block; font-size: 0.8rem; line-height: 1.4;" + MUTED
 
 
 @solara.component
@@ -88,7 +88,7 @@ def ConfirmDialog(
             with rv.CardTitle():
                 solara.Text(title)
             with rv.CardText():
-                solara.Text(message)
+                solara.Text(message, style="display: block;")
                 if note:
                     solara.Text(note, style=_NOTE_STYLE)
                 for line in details or []:

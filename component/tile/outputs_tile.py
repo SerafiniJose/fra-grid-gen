@@ -81,11 +81,11 @@ def OutputsTile(state, map_):
             can_preview = (map_ is not None and out.cell_count <= g.PREVIEW_MAX_CELLS
                            and preview_source(out.folder, out.name, out.formats) is not None)
             with rv.Card(outlined=True, class_="pa-2"):
-                solara.Text(out.name, style="font-weight: 600; overflow-wrap: anywhere;")
+                solara.Text(out.name, style="display: block; font-weight: 600; overflow-wrap: anywhere;")
                 solara.Text(
                     f"r{out.level} · {t('outputs.cells', cells=f'{out.cell_count:,}')} · {out.aoi_label} · "
                     f"{out.generated_at} · {human_size(out.size_bytes)} · {', '.join(out.formats)}",
-                    style="font-size: 0.8rem; opacity: 0.7;",
+                    style="display: block; font-size: 0.8rem; opacity: 0.7;",
                 )
                 with solara.Row(justify="end", style="gap: 4px;"):
                     solara.Button(t("outputs.hide") if shown else t("outputs.show"), small=True, text=True,

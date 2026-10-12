@@ -7,7 +7,7 @@ import solara
 
 from component.i18n import t
 
-_MONO = "font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; overflow-wrap: anywhere;"
+_MONO = "display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; overflow-wrap: anywhere;"
 
 
 def _fmt(value) -> str:
@@ -53,10 +53,10 @@ def MetadataDialog(output, on_close):
             with rv.CardTitle():
                 solara.Text(t("metadata.title", name=output.name))
             with rv.CardText():
-                solara.Text(t("metadata.folder"), style="font-weight: 600;")
+                solara.Text(t("metadata.folder"), style="display: block; font-weight: 600;")
                 solara.Text(str(output.folder), style=_MONO + "user-select: all;")
                 for key, items in metadata_sections(output.metadata):
-                    solara.Text(t(key), style="font-weight: 600; margin-top: 12px;")
+                    solara.Text(t(key), style="display: block; font-weight: 600; margin-top: 12px;")
                     with rv.SimpleTable(dense=True):
                         with rv.Html(tag="tbody"):
                             for label, value in items:

@@ -22,7 +22,7 @@ from component.widget.confirm_dialog import ConfirmDialog
 from component.widget.levels_table import LevelsTable
 from component.widget.metadata_dialog import MetadataDialog
 
-_MONO = "font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; overflow-wrap: anywhere;"
+_MONO = "display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; overflow-wrap: anywhere;"
 
 
 def effective_formats(formats, shp_allowed: bool) -> tuple:
@@ -91,12 +91,12 @@ def ResultCard(result, map_, on_show, on_metadata):
             solara.Text(t("grid.result_title"))
         with rv.CardText():
             solara.Text(t("grid.result_summary", cells=f"{result.cell_count:,}",
-                          seconds=f"{result.duration_s:.1f}"))
+                          seconds=f"{result.duration_s:.1f}"), style="display: block;")
             for line in file_lines(result.files):
                 solara.Text(line, style=_MONO)
             solara.Text(str(result.folder), style=_MONO)
             if too_big:
-                solara.Text(t("grid.preview_too_large"), style="font-size: 0.8rem; opacity: 0.7;")
+                solara.Text(t("grid.preview_too_large"), style="display: block; font-size: 0.8rem; opacity: 0.7;")
         with rv.CardActions():
             solara.Button(t("grid.show_on_map"), on_click=on_show, small=True, text=True,
                           disabled=too_big or source is None or map_ is None)
