@@ -168,3 +168,24 @@ def test_job_texts_resolve_placeholders_lazily():
     assert texts.progress.format(done=1, total=2, cells="10") == "Tile 1/2 · 10 cells"
     assert "zz_grid" in texts.disk_full
     assert "{name}" not in texts.disk_full
+
+
+def test_finished_job_does_not_clear_next_jobs_cancel_event():
+    state, notifier = AppState(), FakeNotifier()
+    gj.start_generation(state, _request("a"), notifier, TEXTS, build=lambda r, *, on_progress, cancel: _result("a"))
+    _wait_idle(state)
+    started, release = threading.Event(), threading.Event()
+
+    def build(request, *, on_progress, cancel):
+        started.set()
+        cancel.wait(5)
+        release.set()
+        raise BuildCancelled()
+
+    assert gj.start_generation(state, _request("b"), notifier, TEXTS, build=build)
+    time.sleep(0.1)  # give a lingering first worker the chance to clobber the event
+    assert state.cancel_event.value is not None
+    assert gj.cancel_generation(state) is True
+    assert release.wait(5)
+    _wait_idle(state)
+    assert state.job.value.status == "cancelled"

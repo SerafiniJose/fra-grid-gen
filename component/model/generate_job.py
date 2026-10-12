@@ -119,5 +119,3 @@ def _run(state, request, notifier, texts, cancel, build):
         state.outputs_signal.set(state.outputs_signal.value + 1)
         state.cancel_event.set(None)
         state.job.set(replace(state.job.value, status="done", cells=result.cell_count, message=message))
-    finally:
-        state.cancel_event.set(None)  # defensive; every branch above already cleared it
