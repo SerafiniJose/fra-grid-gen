@@ -7,7 +7,9 @@
     "cancel": "Cancel",
     "close": "Close",
     "delete": "Delete",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "zoom_hint": "Zoom in to see the cells.",
+    "preview_failed": "Could not show the grid on the map: {error}"
   },
   "dialog": {
     "confirm_default_title": "Are you sure?",
@@ -89,7 +91,7 @@
     "result_title": "Grid ready",
     "result_summary": "{cells} cells in {seconds} s",
     "show_on_map": "Show on map",
-    "preview_too_large": "Map preview is limited to 50,000 cells.",
+    "preview_too_large": "Map preview is limited to 50,000 cells for grids without a preview file.",
     "view_metadata": "View metadata",
     "unvalidated": "correction unvalidated"
   },

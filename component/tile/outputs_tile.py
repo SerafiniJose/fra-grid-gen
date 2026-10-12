@@ -14,23 +14,18 @@ from component.scripts import map_layers
 from component.scripts.notify_bridge import ERROR_TOAST_TIMEOUT
 from component.scripts.outputs_index import DeleteRefused, delete_output, list_outputs
 from component.scripts.writers import human_size
-from component.tile.grid_tile import preview_source
+from component.tile.grid_tile import hide_from_map, show_on_map, zoom_hint_visible
 from component.widget.confirm_dialog import ConfirmDialog
 from component.widget.metadata_dialog import MetadataDialog
 
 logger = logging.getLogger(g.LOGGER_NAME)
 
 
-def toggle_preview(state, map_, output) -> None:
+def toggle_preview(state, map_, output, notifier=None) -> None:
     if state.preview_name.value == output.name:
-        map_layers.remove_grid(map_)
-        state.preview_name.set(None)
+        hide_from_map(state, map_)
         return
-    source = preview_source(output.folder, output.name, output.formats)
-    if source is None or map_ is None:
-        return
-    map_layers.show_grid(map_, source[0], source[1], name=output.name)
-    state.preview_name.set(output.name)
+    show_on_map(state, map_, output.folder, output.name, output.metadata, notifier)
 
 
 def perform_delete(state, map_, root, output, notifier) -> bool:
@@ -50,8 +45,7 @@ def perform_delete(state, map_, root, output, notifier) -> bool:
         state.outputs_signal.set(state.outputs_signal.value + 1)  # a partial delete changes the list
         return False
     if state.preview_name.value == output.name:
-        map_layers.remove_grid(map_)
-        state.preview_name.set(None)
+        hide_from_map(state, map_)
     last = state.last_output.value
     if last is not None and last.name == output.name:
         state.last_output.set(None)
@@ -78,8 +72,7 @@ def OutputsTile(state, map_):
             solara.Info(t("outputs.empty"))
         for out in outputs:
             shown = state.preview_name.value == out.name
-            can_preview = (map_ is not None and out.cell_count <= g.PREVIEW_MAX_CELLS
-                           and preview_source(out.folder, out.name, out.formats) is not None)
+            can_preview = map_ is not None and map_layers.plan_preview(out.folder, out.name, out.metadata).available
             with rv.Card(outlined=True, class_="pa-2"):
                 solara.Text(out.name, style="display: block; font-weight: 600; overflow-wrap: anywhere;")
                 solara.Text(
@@ -87,10 +80,12 @@ def OutputsTile(state, map_):
                     f"{out.generated_at} · {human_size(out.size_bytes)} · {', '.join(out.formats)}",
                     style="display: block; font-size: 0.8rem; opacity: 0.7;",
                 )
+                if shown and zoom_hint_visible(state, out.name):
+                    solara.Text(t("common.zoom_hint"), style="display: block; font-size: 0.8rem; opacity: 0.7;")
                 with solara.Row(justify="end", style="gap: 4px;"):
                     solara.Button(t("outputs.hide") if shown else t("outputs.show"), small=True, text=True,
                                   icon_name="mdi-eye-off" if shown else "mdi-eye", disabled=not can_preview,
-                                  on_click=lambda o=out: toggle_preview(state, map_, o))
+                                  on_click=lambda o=out: toggle_preview(state, map_, o, notifier))
                     solara.Button(t("outputs.metadata"), small=True, text=True, icon_name="mdi-information",
                                   on_click=lambda o=out: set_meta(o))
                     solara.Button(t("common.delete"), small=True, text=True, color="error",

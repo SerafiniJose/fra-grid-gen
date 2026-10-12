@@ -25,6 +25,7 @@ from component.scripts.map_layers import sync_draw_control_visibility
 from component.scripts.notify_bridge import install_task_log_handler
 from component.scripts.outputs_index import cleanup_stale
 from component.scripts.scratch import configure_gdal_tmpdir
+from component.scripts.tile_proxy import borrow_localtileserver_prefix, loopback_bridge_needed, prefer_http_proxy
 from component.tile.aoi_tile import AoiTile
 from component.tile.grid_tile import GridTile
 from component.tile.outputs_tile import OutputsTile
@@ -33,6 +34,11 @@ logger = setup_logging(logger_name=g.LOGGER_NAME)
 # Tile milestones -> notification pill; also lifts the logger to INFO when
 # logging_config.toml is missing (the root's WARNING would hide them).
 install_task_log_handler()
+# On SEPAL, reuse the raster tiles' jupyter-server-proxy route for the PMTiles
+# map preview server (vectortileserver never autodetects one), and keep it off
+# the comm bridge then. Before any TileClient: they are built on "Show on map".
+borrow_localtileserver_prefix()
+prefer_http_proxy()
 # GDAL scratch files must never land in the read-only CWD on SEPAL.
 configure_gdal_tmpdir()
 # Leftovers of a run killed mid-write (server restart, instance stop).
@@ -41,6 +47,26 @@ if _removed:
     logger.info("Removed unfinished folders: %s", ", ".join(_removed))
 
 setup_solara_server(extra_asset_locations=[])
+
+
+def _loopback_bridge_widget():
+    """The jupyter-loopback CommBridge singleton, or None (from spatial_risk).
+
+    Mounted in the page from the first render: under voila a later
+    ``display()`` from a click handler never reaches the browser, and the JS
+    half must install its tile-URL interceptors before a PMTiles layer
+    renders. None when the tile server goes through an HTTP proxy (SEPAL).
+    """
+    if not loopback_bridge_needed():
+        return None
+    try:
+        import jupyter_loopback
+
+        return jupyter_loopback.enable_comm_bridge(display=False)
+    except Exception:  # anywidget missing / exotic runtime
+        logger.warning("jupyter-loopback comm bridge unavailable; the map preview may not render locally",
+                       exc_info=True)
+        return None
 
 
 @solara.lab.on_kernel_start
@@ -86,6 +112,21 @@ def WorkflowTabs(map_):
 
     solara.use_effect(sync_draw_control, [active, app_state.aoi_loading.value])
 
+    # The PMTiles preview draws nothing below its min zoom: the tabs show a
+    # "zoom in" hint, so mirror the map's zoom into the state.
+    def watch_zoom():
+        if map_ is None:
+            return None
+
+        def on_zoom(change):
+            app_state.map_zoom.set(change["new"])
+
+        app_state.map_zoom.set(map_.zoom)
+        map_.observe(on_zoom, "zoom")
+        return lambda: map_.unobserve(on_zoom, "zoom")
+
+    solara.use_effect(watch_zoom, [map_])
+
     with rv.Tabs(v_model=active, on_v_model=app_state.active_tab.set, grow=True):
         rv.Tab(children=[t("tabs.aoi")])
         rv.Tab(disabled=grid_disabled, children=[t("tabs.grid")])
@@ -121,6 +162,11 @@ def Page():
 
     solara.Title(t("app.title"))
     solara.Style(".dialog-content { overflow-x: hidden !important; }")
+    # jupyter-loopback comm bridge (local runs), in the page from the first
+    # render so tile-URL interception is live before a PMTiles layer is added.
+    loopback_bridge = solara.use_memo(_loopback_bridge_widget, [])
+    if loopback_bridge is not None:
+        solara.display(loopback_bridge)
     # Must be mounted before MapApp: pysepal 4's use_notifications() raises
     # when no provider exists yet.
     NotificationProvider()

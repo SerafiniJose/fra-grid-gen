@@ -1,5 +1,6 @@
 """Grid tab: level, name, formats, Generate/Cancel, inline progress, result card."""
 
+import logging
 from datetime import date
 from pathlib import Path
 
@@ -16,12 +17,17 @@ from component.scripts.aoi_prep import default_grid_name
 from component.scripts.dggrid_engine import EngineUnavailable, dggrid_executable
 from component.scripts.grid_builder import BuildRequest
 from component.scripts.levels import estimate_levels, estimated_size_bytes
+from component.scripts.metadata import AOI_FILE
+from component.scripts.notify_bridge import ERROR_TOAST_TIMEOUT
 from component.scripts.outputs_index import load_output, name_status, validate_grid_name
 from component.scripts.writers import human_size
 from component.widget.confirm_dialog import ConfirmDialog
 from component.widget.levels_table import LevelsTable
 from component.widget.metadata_dialog import MetadataDialog
 
+logger = logging.getLogger(g.LOGGER_NAME)
+
+_HINT = "display: block; font-size: 0.8rem; opacity: 0.7;"
 _MONO = "display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; overflow-wrap: anywhere;"
 
 
@@ -54,13 +60,35 @@ def confirm_steps(verdict: str, name_state: str) -> list:
     return steps
 
 
-def preview_source(folder, name: str, formats):
-    folder = Path(folder)
-    for fmt in ("gpkg", "shp"):
-        path = folder / f"{name}.{fmt}"
-        if fmt in formats and path.exists():
-            return path, name
-    return None
+def show_on_map(state, map_, folder, name: str, metadata: dict, notifier=None) -> bool:
+    """Show one grid's preview (PMTiles or GeoJSON) and record it in the state."""
+    plan = map_layers.plan_preview(folder, name, metadata)
+    if map_ is None or not plan.available:
+        return False
+    bbox = metadata.get("aoi", {}).get("bbox")
+    try:
+        minzoom = map_layers.show_preview(map_, plan, name=name, bounds=bbox, aoi_path=Path(folder) / AOI_FILE)
+    except Exception as exc:
+        logger.exception("Map preview failed")
+        if notifier is not None:
+            notifier.error(t("common.preview_failed", error=str(exc) or type(exc).__name__),
+                           timeout=ERROR_TOAST_TIMEOUT)
+        return False
+    state.preview_minzoom.set(minzoom)
+    state.preview_name.set(name)
+    return True
+
+
+def hide_from_map(state, map_) -> None:
+    map_layers.remove_grid(map_)
+    state.preview_minzoom.set(None)
+    state.preview_name.set(None)
+
+
+def zoom_hint_visible(state, name: str) -> bool:
+    return state.preview_name.value == name and map_layers.zoom_hint_needed(
+        state.map_zoom.value, state.preview_minzoom.value
+    )
 
 
 def file_lines(files) -> list:
@@ -83,9 +111,8 @@ def _engine_ok() -> bool:
 
 
 @solara.component
-def ResultCard(result, map_, on_show, on_metadata):
-    source = preview_source(result.folder, result.name, result.metadata["run"]["formats"])
-    too_big = result.cell_count > g.PREVIEW_MAX_CELLS
+def ResultCard(result, map_, on_show, on_metadata, zoom_hint=False):
+    plan = map_layers.plan_preview(result.folder, result.name, result.metadata)
     with rv.Card(outlined=True):
         with rv.CardTitle():
             solara.Text(t("grid.result_title"))
@@ -95,11 +122,13 @@ def ResultCard(result, map_, on_show, on_metadata):
             for line in file_lines(result.files):
                 solara.Text(line, style=_MONO)
             solara.Text(str(result.folder), style=_MONO)
-            if too_big:
-                solara.Text(t("grid.preview_too_large"), style="display: block; font-size: 0.8rem; opacity: 0.7;")
+            if not plan.available and result.cell_count > g.PREVIEW_MAX_CELLS:
+                solara.Text(t("grid.preview_too_large"), style=_HINT)
+            if zoom_hint:
+                solara.Text(t("common.zoom_hint"), style=_HINT)
         with rv.CardActions():
             solara.Button(t("grid.show_on_map"), on_click=on_show, small=True, text=True,
-                          disabled=too_big or source is None or map_ is None)
+                          disabled=not plan.available or map_ is None)
             solara.Button(t("grid.view_metadata"), small=True, text=True, on_click=on_metadata)
 
 
@@ -110,6 +139,7 @@ def JobPanel(state, map_, root, on_metadata, show_cancel):
     Rendered with or without an AOI, so a job stays cancellable while the AOI
     tab re-resolves (``aoi_info`` is None then).
     """
+    notifier = use_notifications()
     job = state.job.value
     if job.running:
         if show_cancel:
@@ -127,15 +157,10 @@ def JobPanel(state, map_, root, on_metadata, show_cancel):
 
     result = state.last_output.value
     if job.status == "done" and result is not None:
-        def show():
-            source = preview_source(result.folder, result.name, result.metadata["run"]["formats"])
-            if source is None or map_ is None:
-                return
-            map_layers.show_grid(map_, source[0], source[1], name=result.name)
-            state.preview_name.set(result.name)
-
-        ResultCard(result=result, map_=map_, on_show=show,
-                   on_metadata=lambda: on_metadata(load_output(root, result.name)))
+        ResultCard(result=result, map_=map_,
+                   on_show=lambda: show_on_map(state, map_, result.folder, result.name, result.metadata, notifier),
+                   on_metadata=lambda: on_metadata(load_output(root, result.name)),
+                   zoom_hint=zoom_hint_visible(state, result.name))
 
 
 @solara.component
@@ -146,6 +171,19 @@ def GridTile(state, map_):
     meta_open, set_meta_open = solara.use_state(None)
     info = state.aoi_info.value
     level = state.level.value
+    last_seen = solara.use_ref(state.last_output.value)
+
+    def drop_replaced_preview():
+        # A finished run that overwrote the grid on the map: its layer shows
+        # the old cells (and its tile server the swapped file), so remove it.
+        result = state.last_output.value
+        if result is last_seen.current:
+            return
+        last_seen.current = result
+        if result is not None and state.preview_name.value == result.name:
+            hide_from_map(state, map_)
+
+    solara.use_effect(drop_replaced_preview, [id(state.last_output.value)])
 
     def auto_name():
         if info is not None and not state.name_edited.value:

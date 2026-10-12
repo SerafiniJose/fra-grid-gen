@@ -7,7 +7,9 @@
     "cancel": "Cancelar",
     "close": "Cerrar",
     "delete": "Eliminar",
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "zoom_hint": "Acerque el mapa para ver las celdas.",
+    "preview_failed": "No se pudo mostrar la grilla en el mapa: {error}"
   },
   "dialog": {
     "confirm_default_title": "¿Está seguro?",
@@ -89,7 +91,7 @@
     "result_title": "Grilla lista",
     "result_summary": "{cells} celdas en {seconds} s",
     "show_on_map": "Ver en el mapa",
-    "preview_too_large": "La vista en el mapa se limita a 50.000 celdas.",
+    "preview_too_large": "La vista en el mapa se limita a 50.000 celdas para las grillas sin archivo de vista previa.",
     "view_metadata": "Ver metadatos",
     "unvalidated": "corrección no validada"
   },
