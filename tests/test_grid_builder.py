@@ -93,7 +93,41 @@ def test_existing_non_grid_folder_is_never_replaced(results_root, chaco_aoi):
     with pytest.raises(oi.NotAGridFolder):
         gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "g", overwrite=True))
     assert (results_root / "g" / "precious.txt").read_text() == "keep"
-    assert not oi.part_folder(results_root, "g").exists()
+    assert sorted(p.name for p in results_root.iterdir()) == ["g"]
+
+
+def test_concurrent_same_name_builds_stage_in_their_own_part_folders(results_root, chaco_aoi, monkeypatch):
+    both_staging = threading.Barrier(2, timeout=5)
+    parts, errors = [], []
+
+    class Stop(RuntimeError):
+        pass
+
+    def fake_build_into(request, part, work, t0, on_progress, cancel, now):
+        parts.append(part)
+        both_staging.wait()  # both runs are staging at the same time
+        assert all(p.is_dir() for p in parts)
+        both_staging.wait()  # neither cleans up before the other has checked
+        raise Stop()
+
+    def run():
+        try:
+            gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "same"))
+        except Stop:
+            pass
+        except BaseException as exc:  # surfaced below
+            errors.append(exc)
+
+    monkeypatch.setattr(gb, "_build_into", fake_build_into)
+    threads = [threading.Thread(target=run) for _ in range(2)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join(10)
+    assert errors == []
+    assert len(set(parts)) == 2
+    assert all(p.parent == results_root and p.name.startswith(".same.") for p in parts)
+    assert list(results_root.iterdir()) == []
 
 
 # ---- engine-backed -------------------------------------------------------------

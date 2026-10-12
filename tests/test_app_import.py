@@ -1,12 +1,19 @@
 import importlib
+import os
 import sys
+import time
 from types import SimpleNamespace
 
 import solara
 
+from component.scripts.outputs_index import STALE_AGE_S
+
 
 def test_app_imports_cleans_stale_folders_and_exposes_routes(results_root):
-    (results_root / ".g.part").mkdir()
+    stale = results_root / ".g.0123abcd.part"
+    stale.mkdir()
+    old = time.time() - 2 * STALE_AGE_S
+    os.utime(stale, (old, old))
     (results_root / "keep").mkdir()
     sys.modules.pop("app", None)
     app = importlib.import_module("app")

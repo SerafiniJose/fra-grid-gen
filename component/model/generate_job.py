@@ -1,10 +1,13 @@
 """Run one grid generation on a thread that carries the Solara kernel context.
 
 ``start_generation`` is called from the Generate click handler. The start is
-guarded by a process lock plus the job status, so a double click or a second
-tab cannot start a second job. Reactive writes from the worker reach the
-browser because ``spawn_in_context`` registers the kernel context on the
-thread. Every user-facing string is resolved by ``job_texts`` in the click
+guarded by a process lock plus the session's job status, so a double click
+cannot start a second job in the same session (kernel). Other sessions (on
+SEPAL every tab is its own kernel process) may run their own job at the same
+time, even for the same name: each run stages in its own ``.part`` folder and
+the final commit refuses to replace a grid unless the run asked to overwrite.
+Reactive writes from the worker reach the browser because ``spawn_in_context``
+registers the kernel context on the thread. Every user-facing string is resolved by ``job_texts`` in the click
 handler (``t()`` must not run on a worker); the worker only fills templates.
 """
 

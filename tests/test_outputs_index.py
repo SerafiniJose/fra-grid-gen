@@ -1,4 +1,10 @@
 import json
+import os
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
 
 import pytest
 
@@ -80,33 +86,116 @@ def test_delete_refuses_busy_name(tmp_path):
     assert err.value.reason == "busy" and (tmp_path / "g").exists()
 
 
+def _part_with_metadata(root, name, v):
+    part = oi.new_part_folder(root, name)
+    (part / "metadata.json").write_text(json.dumps({"schema": SCHEMA, "v": v}))
+    return part
+
+
+def _dead_pid():
+    proc = subprocess.Popen([sys.executable, "-c", "pass"])
+    proc.wait()
+    return proc.pid
+
+
+def _age(path, seconds):
+    old = time.time() - seconds
+    os.utime(path, (old, old))
+
+
+def test_new_part_folder_is_unique_dot_prefixed_and_owned(tmp_path):
+    a, b = oi.new_part_folder(tmp_path, "g"), oi.new_part_folder(tmp_path, "g")
+    assert a != b and a.is_dir() and b.is_dir()
+    assert a.name.startswith(".g.") and a.name.endswith(".part")
+    owner = json.loads((a / oi.OWNER_FILE).read_text())
+    assert owner["pid"] == os.getpid() and owner["host"] == socket.gethostname()
+
+
 def test_commit_part_fresh_and_overwrite(tmp_path):
-    part = oi.part_folder(tmp_path, "g")
-    part.mkdir()
-    (part / "metadata.json").write_text(json.dumps({"schema": SCHEMA, "v": 1}))
-    assert oi.commit_part(tmp_path, "g") == tmp_path / "g"
-    part.mkdir()
-    (part / "metadata.json").write_text(json.dumps({"schema": SCHEMA, "v": 2}))
-    oi.commit_part(tmp_path, "g")
+    part = _part_with_metadata(tmp_path, "g", 1)
+    assert oi.commit_part(tmp_path, "g", part, overwrite=False) == tmp_path / "g"
+    assert not (tmp_path / "g" / oi.OWNER_FILE).exists()
+    part = _part_with_metadata(tmp_path, "g", 2)
+    oi.commit_part(tmp_path, "g", part, overwrite=True)
     assert json.loads((tmp_path / "g" / "metadata.json").read_text())["v"] == 2
-    assert not oi.part_folder(tmp_path, "g").exists() and not oi.old_folder(tmp_path, "g").exists()
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["g"]
+
+
+def test_commit_part_refuses_existing_grid_without_overwrite(tmp_path):
+    oi.commit_part(tmp_path, "g", _part_with_metadata(tmp_path, "g", 1), overwrite=False)
+    part = _part_with_metadata(tmp_path, "g", 2)
+    with pytest.raises(FileExistsError):
+        oi.commit_part(tmp_path, "g", part, overwrite=False)
+    assert json.loads((tmp_path / "g" / "metadata.json").read_text())["v"] == 1
+    assert part.is_dir()
 
 
 def test_commit_part_never_replaces_a_non_grid_folder(tmp_path):
     (tmp_path / "g").mkdir()
     (tmp_path / "g" / "precious.txt").write_text("keep")
-    oi.part_folder(tmp_path, "g").mkdir()
+    part = oi.new_part_folder(tmp_path, "g")
     with pytest.raises(oi.NotAGridFolder):
-        oi.commit_part(tmp_path, "g")
+        oi.commit_part(tmp_path, "g", part, overwrite=True)
     assert (tmp_path / "g" / "precious.txt").read_text() == "keep"
+
+
+def test_failed_swap_restores_the_old_grid(tmp_path, monkeypatch):
+    oi.commit_part(tmp_path, "g", _part_with_metadata(tmp_path, "g", 1), overwrite=False)
+    part = _part_with_metadata(tmp_path, "g", 2)
+    real_rename = Path.rename
+
+    def flaky_rename(self, target):
+        if self == part:
+            raise OSError("rename failed")
+        return real_rename(self, target)
+
+    monkeypatch.setattr(Path, "rename", flaky_rename)
+    with pytest.raises(OSError, match="rename failed"):
+        oi.commit_part(tmp_path, "g", part, overwrite=True)
+    assert json.loads((tmp_path / "g" / "metadata.json").read_text())["v"] == 1
+    assert not oi.old_folder(tmp_path, "g").exists()
 
 
 def test_cleanup_stale_only_touches_dot_folders(tmp_path):
     (tmp_path / ".a.part").mkdir()
-    (tmp_path / ".b.old").mkdir()
+    _age(tmp_path / ".a.part", 2 * oi.STALE_AGE_S)
+    make_grid(tmp_path, "b")
+    (tmp_path / "b").rename(tmp_path / ".b.old")
+    make_grid(tmp_path, "b")
     (tmp_path / ".config").mkdir()
     (tmp_path / "c.part").mkdir()
+    _age(tmp_path / "c.part", 2 * oi.STALE_AGE_S)
     (tmp_path / ".d.part").write_text("file, not folder")
     make_grid(tmp_path, "g")
     assert sorted(oi.cleanup_stale(tmp_path)) == [".a.part", ".b.old"]
-    assert sorted(p.name for p in tmp_path.iterdir()) == [".config", ".d.part", "c.part", "g"]
+    assert sorted(p.name for p in tmp_path.iterdir()) == [".config", ".d.part", "b", "c.part", "g"]
+
+
+def test_cleanup_stale_keeps_a_part_owned_by_a_live_run(tmp_path):
+    live = oi.new_part_folder(tmp_path, "g")  # owner pid = this process
+    fresh_unowned = tmp_path / ".h.0123abcd.part"
+    fresh_unowned.mkdir()
+    assert oi.cleanup_stale(tmp_path) == []
+    assert live.is_dir() and fresh_unowned.is_dir()
+
+
+def test_cleanup_stale_removes_dead_owner_and_old_parts(tmp_path):
+    dead = oi.new_part_folder(tmp_path, "g")
+    owner = json.loads((dead / oi.OWNER_FILE).read_text())
+    (dead / oi.OWNER_FILE).write_text(json.dumps({**owner, "pid": _dead_pid()}))
+    other_host = oi.new_part_folder(tmp_path, "h")
+    (other_host / oi.OWNER_FILE).write_text(json.dumps({**owner, "host": "elsewhere", "started": 0}))
+    unowned = tmp_path / ".k.0123abcd.part"
+    unowned.mkdir()
+    _age(unowned, 2 * oi.STALE_AGE_S)
+    assert sorted(oi.cleanup_stale(tmp_path)) == sorted([dead.name, other_host.name, unowned.name])
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_cleanup_stale_restores_an_orphan_old_grid(tmp_path):
+    make_grid(tmp_path, "g")
+    (tmp_path / "g").rename(oi.old_folder(tmp_path, "g"))
+    oi.old_folder(tmp_path, "x").mkdir()  # not a grid: left alone, never renamed into place
+    assert oi.cleanup_stale(tmp_path) == []
+    assert oi.is_grid_folder(tmp_path / "g")
+    assert sorted(p.name for p in tmp_path.iterdir()) == [".x.old", "g"]

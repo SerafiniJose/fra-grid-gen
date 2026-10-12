@@ -243,14 +243,12 @@ def build_grid(request: BuildRequest, *, results_root=None, on_progress=None, ca
     t0 = time.monotonic()
     root = Path(results_root) if results_root is not None else results_dir()
     _validate(request, root)
-    part = oi.part_folder(root, request.name)
-    shutil.rmtree(part, ignore_errors=True)
-    part.mkdir(parents=True)
+    part = oi.new_part_folder(root, request.name)  # this run's own: never shared with another session
     work = Path(tempfile.mkdtemp(prefix=f"{request.name}-", dir=local_scratch_dir()))
     try:
         record, files, n_tiles, total = _build_into(request, part, work, t0, on_progress, cancel, now)
         _check(cancel)
-        folder = oi.commit_part(root, request.name)
+        folder = oi.commit_part(root, request.name, part, overwrite=request.overwrite)
     except BaseException:
         shutil.rmtree(part, ignore_errors=True)
         raise

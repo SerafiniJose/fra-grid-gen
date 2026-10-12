@@ -2,12 +2,22 @@
 
 A grid folder is a direct child of the root holding a readable
 ``metadata.json`` with this app's schema. Anything else is never listed,
-replaced or deleted. Builds land in ``.<name>.part`` and are renamed into
-place; an overwrite parks the old folder as ``.<name>.old`` for the swap.
+replaced or deleted. Builds land in a staging ``.part`` folder and are renamed
+into place; an overwrite parks the old folder as ``.<name>.old`` for the swap.
+
+Every run stages in its own ``.<name>.<run id>.part`` holding an owner file
+(pid, host, start time): on SEPAL every browser tab is its own kernel
+process, so two sessions may build the same name, and a new kernel's startup
+cleanup must not delete a part a live run is still writing.
 """
 
+import json
+import os
 import re
 import shutil
+import socket
+import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,6 +25,8 @@ from component.scripts.metadata import read_metadata_json
 from component.scripts.writers import file_sizes
 
 MAX_NAME_LEN = 80
+OWNER_FILE = ".owner.json"
+STALE_AGE_S = 24 * 3600  # a part older than this is abandoned, whoever owns it
 _NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 
 
@@ -38,8 +50,13 @@ def validate_grid_name(name):
     return None
 
 
-def part_folder(root, name) -> Path:
-    return Path(root) / f".{name}.part"
+def new_part_folder(root, name) -> Path:
+    """Create this run's own staging folder, with an owner file in it."""
+    part = Path(root) / f".{name}.{uuid.uuid4().hex[:8]}.part"
+    part.mkdir(parents=True)
+    owner = {"pid": os.getpid(), "host": socket.gethostname(), "started": time.time()}
+    (part / OWNER_FILE).write_text(json.dumps(owner))
+    return part
 
 
 def old_folder(root, name) -> Path:
@@ -111,17 +128,32 @@ def list_outputs(root) -> list:
     return sorted(records, key=lambda r: (r.generated_at, r.name), reverse=True)
 
 
-def commit_part(root, name) -> Path:
-    root = Path(root)
-    part, target, old = part_folder(root, name), root / name, old_folder(root, name)
+def commit_part(root, name, part, *, overwrite: bool) -> Path:
+    """Rename this run's ``part`` into ``<root>/<name>``.
+
+    An existing grid is replaced only when ``overwrite``; anything else at the
+    target is never touched. If the swap fails half-way the old grid is put back.
+    """
+    root, part = Path(root), Path(part)
+    target, old = root / name, old_folder(root, name)
     if not part.is_dir():
         raise FileNotFoundError(str(part))
-    if target.exists() or target.is_symlink():
-        if not is_grid_folder(target):
-            raise NotAGridFolder(str(target))
-        shutil.rmtree(old, ignore_errors=True)
-        target.rename(old)
-    part.rename(target)
+    if not (target.exists() or target.is_symlink()):
+        (part / OWNER_FILE).unlink(missing_ok=True)
+        part.rename(target)
+        return target
+    if not is_grid_folder(target):
+        raise NotAGridFolder(str(target))
+    if not overwrite:
+        raise FileExistsError(str(target))
+    (part / OWNER_FILE).unlink(missing_ok=True)
+    shutil.rmtree(old, ignore_errors=True)
+    target.rename(old)
+    try:
+        part.rename(target)
+    except BaseException:
+        old.rename(target)
+        raise
     shutil.rmtree(old, ignore_errors=True)
     return target
 
@@ -147,14 +179,59 @@ def delete_output(root, name, *, busy=()) -> None:
     shutil.rmtree(_guarded_folder(root, name))
 
 
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except (OSError, OverflowError, ValueError):
+        return False
+    return True
+
+
+def _part_abandoned(part: Path, now: float) -> bool:
+    """True unless a live run on this host may still be writing ``part``."""
+    try:
+        owner = json.loads((part / OWNER_FILE).read_text())
+        pid, host, started = int(owner["pid"]), str(owner["host"]), float(owner["started"])
+    except (OSError, ValueError, TypeError, KeyError):
+        try:
+            return now - part.stat().st_mtime > STALE_AGE_S
+        except OSError:
+            return False
+    if now - started > STALE_AGE_S:
+        return True
+    return host == socket.gethostname() and not _pid_alive(pid)
+
+
 def cleanup_stale(root) -> list:
+    """Remove abandoned staging folders and put back an orphaned ``.old`` grid.
+
+    Only dot-prefixed folders ending in ``.part`` / ``.old`` are considered;
+    files, symlinks and other folders are never touched. A ``.part`` goes only
+    when its owner run is gone (dead pid on this host) or it is older than
+    ``STALE_AGE_S``. A ``.<name>.old`` grid whose ``<name>`` is missing (a swap
+    that died half-way) is renamed back; otherwise it is removed.
+    """
     removed = []
     root = Path(root)
     if not root.is_dir():
         return removed
+    now = time.time()
     for path in root.iterdir():
-        stale = path.name.startswith(".") and path.name.endswith((".part", ".old"))
-        if stale and path.is_dir() and not path.is_symlink():
-            shutil.rmtree(path, ignore_errors=True)
-            removed.append(path.name)
+        if not path.name.startswith(".") or not path.is_dir() or path.is_symlink():
+            continue
+        if path.name.endswith(".part"):
+            if _part_abandoned(path, now):
+                shutil.rmtree(path, ignore_errors=True)
+                removed.append(path.name)
+        elif path.name.endswith(".old"):
+            target = root / path.name[1:-len(".old")]
+            if target.exists() or target.is_symlink():
+                shutil.rmtree(path, ignore_errors=True)
+                removed.append(path.name)
+            elif is_grid_folder(path) and validate_grid_name(target.name) is None:
+                path.rename(target)
     return removed
