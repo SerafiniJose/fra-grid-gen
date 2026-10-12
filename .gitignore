@@ -1,0 +1,19 @@
+# Reference data (large; kept local only)
+*.zip
+reference_data/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# Generated grids / scratch
+*.gpkg
+*.gpkg-*
+output/
+
+# Logs
+*.log
+.env

@@ -1,0 +1,40 @@
+name: fra-grid
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy=2.2
+  - pandas
+  - geopandas
+  - pyogrio
+  - shapely>=2.1
+  - pyproj
+  # DGGRID C++ binary (built against libgdal, so GDAL clipping works)
+  - dggrid=8.44
+  # Pulled in by pysepal; take them from conda so rasterio uses conda's libgdal
+  # instead of a pip wheel with its own bundled GDAL
+  - rasterio
+  - rioxarray
+  - dask
+  - matplotlib-base
+  - pyarrow
+  - python-box
+  # GUI / serving
+  # ipyvuetify 3 introduces breaking changes; keep the pre-3 API
+  - ipyvuetify<3
+  - ipyleaflet
+  - voila
+  - ipykernel
+  - requests
+  - colorlog
+  - pip
+  - pip:
+      # SEPAL's Earth Engine build (pysepal 4 needs earthengine-api>1.6.0)
+      - "earthengine-api @ git+https://github.com/openforis/earthengine-api.git@v1.6.14#subdirectory=python"
+      # 3.2.1 is the pysepal 4 floor
+      - "ee-client>=3.2.1,<4"
+      # pysepal 4 floor; conda-forge tops out at 1.58.2
+      - "solara>=1.60.3,<2"
+      - "pysepal==4.1.0"
+      # AGPL-3.0: see spec §12 (licence open item). Only dggrid_engine.py imports it.
+      - "dggrid4py==0.6.0"

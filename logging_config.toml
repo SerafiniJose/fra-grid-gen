@@ -1,0 +1,25 @@
+version = 1
+disable_existing_loggers = false
+
+[formatters.colored_fra_grid]
+"()"    = "colorlog.ColoredFormatter"
+format  = "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+datefmt = "%Y-%m-%d %H:%M:%S"
+
+[formatters.colored_fra_grid.log_colors]
+DEBUG    = "cyan"
+INFO     = "green"
+WARNING  = "yellow"
+ERROR    = "red"
+CRITICAL = "bold_red"
+
+[handlers.console]
+class     = "logging.StreamHandler"
+level     = "DEBUG"
+formatter = "colored_fra_grid"
+stream    = "ext://sys.stderr"
+
+[loggers.fra_grid]
+level     = "DEBUG"
+handlers  = ["console"]
+propagate = false

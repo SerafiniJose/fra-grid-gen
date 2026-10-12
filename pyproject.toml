@@ -1,0 +1,39 @@
+[project]
+name = "fra-grid-generator"
+version = "0.1.0"
+description = "SEPAL module that generates FRA RSS ISEA3H hexagon grids (r17-r21) for an area of interest."
+requires-python = ">=3.11"
+# Mirrors sepal_environment.yml, which is what SEPAL installs; keep them in sync.
+# Not represented: the dggrid binary (conda-forge only) and python itself.
+dependencies = [
+    "colorlog",
+    "dask",
+    "dggrid4py==0.6.0",
+    "earthengine-api @ git+https://github.com/openforis/earthengine-api.git@v1.6.14#subdirectory=python",
+    "ee-client>=3.2.1,<4",
+    "geopandas",
+    "ipykernel",
+    "ipyleaflet",
+    "ipyvuetify<3",
+    "matplotlib",
+    "numpy==2.2.*",
+    "pandas",
+    "pyarrow",
+    "pyogrio",
+    "pyproj",
+    "pysepal==4.1.0",
+    "python-box",
+    "rasterio",
+    "requests",
+    "rioxarray",
+    "shapely>=2.1",
+    "solara>=1.60.3,<2",
+    "voila",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "engine: needs the dggrid binary on PATH",
+    "golden: needs reference_data/output/isea3hr17_528.shp (git-ignored) and the dggrid binary",
+]
