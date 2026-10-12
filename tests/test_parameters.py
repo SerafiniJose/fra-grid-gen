@@ -25,3 +25,9 @@ def test_level_constants_are_consistent():
     assert grid.WARN_CELLS < grid.SHP_MAX_CELLS < grid.BLOCK_CELLS
     assert grid.LOGGER_NAME == "fra_grid"
     assert Path(grid.__file__).parent.name == "parameter"
+
+
+def test_preview_constants():
+    assert set(grid.PREVIEW_ZOOMS) == set(grid.LEVELS)
+    assert all(0 <= lo < hi <= 16 for lo, hi in grid.PREVIEW_ZOOMS.values())
+    assert grid.PREVIEW_FILE.startswith(".") and grid.PREVIEW_FILE.endswith(".pmtiles")

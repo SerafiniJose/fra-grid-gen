@@ -13,7 +13,16 @@ LEVELS = tuple(range(MIN_LEVEL, MAX_LEVEL + 1))
 WARN_CELLS = 2_000_000
 BLOCK_CELLS = 10_000_000
 SHP_MAX_CELLS = 4_000_000
+# GeoJSON map preview cap: grids without a PMTiles preview (older folders,
+# tippecanoe missing at build time) are drawn cell by cell in the browser.
 PREVIEW_MAX_CELLS = 50_000
+
+# PMTiles map preview built with every grid (hidden; not a deliverable).
+PREVIEW_FILE = ".preview.pmtiles"
+PREVIEW_LAYER = "cells"  # tippecanoe -l name = MapLibre source-layer
+# Web-map zoom range per level: hexagons are >= ~3.5 px wide at the equator from
+# the min zoom on; nothing is drawn below it, the browser overzooms past the max.
+PREVIEW_ZOOMS = {17: (10, 13), 18: (11, 14), 19: (12, 15), 20: (12, 15), 21: (13, 16)}
 
 # Tile edge (degrees, WGS84) per level: keeps one dggrid call at <= ~200k cells.
 TILE_DEG = {17: 1.0, 18: 1.0, 19: 0.5, 20: 0.5, 21: 0.25}

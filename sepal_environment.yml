@@ -27,6 +27,8 @@ dependencies:
   - ipykernel
   - requests
   - colorlog
+  # Builds the PMTiles map preview of every grid
+  - tippecanoe
   - pip
   - pip:
       # SEPAL's Earth Engine build (pysepal 4 needs earthengine-api>1.6.0)
@@ -38,3 +40,7 @@ dependencies:
       - "pysepal==4.1.0"
       # AGPL-3.0: see spec §12 (licence open item). Only dggrid_engine.py imports it.
       - "dggrid4py==0.6.0"
+      # PMTiles map preview: range-request tile server + the comm bridge that
+      # carries it to the browser when no HTTP proxy route exists (local runs)
+      - "vectortileserver==0.3.0"
+      - "jupyter-loopback[comm]==0.3.3"

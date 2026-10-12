@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "SEPAL module that generates FRA RSS ISEA3H hexagon grids (r17-r21) for an area of interest."
 requires-python = ">=3.11"
 # Mirrors sepal_environment.yml, which is what SEPAL installs; keep them in sync.
-# Not represented: the dggrid binary (conda-forge only) and python itself.
+# Not represented: the dggrid and tippecanoe binaries (conda-forge only) and python itself.
 dependencies = [
     "colorlog",
     "dask",
@@ -12,6 +12,7 @@ dependencies = [
     "earthengine-api @ git+https://github.com/openforis/earthengine-api.git@v1.6.14#subdirectory=python",
     "ee-client>=3.2.1,<4",
     "geopandas",
+    "jupyter-loopback[comm]==0.3.3",
     "ipykernel",
     "ipyleaflet",
     "ipyvuetify<3",
@@ -28,6 +29,7 @@ dependencies = [
     "rioxarray",
     "shapely>=2.1",
     "solara>=1.60.3,<2",
+    "vectortileserver==0.3.0",
     "voila",
 ]
 
