@@ -29,7 +29,7 @@ FIELD_DOCS = {
     "level": "ISEA3H resolution",
     "lon": "centroid longitude (WGS84)",
     "lat": "centroid latitude (WGS84)",
-    "area_ha": "geodesic cell area, hectares",
+    "area_ha": "geodesic cell area on the WGS84 ellipsoid, hectares",
 }
 
 _DDL = """

@@ -32,7 +32,7 @@
     "error": {
       "empty": "The AOI has no geometry. Pick another area.",
       "no_polygon": "The AOI has no polygon area. Use a polygon or point AOI.",
-      "antimeridian": "The AOI crosses the 180° meridian. Split it into two parts, one on each side of 180°, and generate each one.",
+      "antimeridian": "The AOI crosses the 180° meridian. Split it into two parts, one on each side of 180°, and generate each one. The cells straddling 180° come with the part that ends at +180°.",
       "fetch": "Could not read the AOI geometry: {error}"
     }
   },

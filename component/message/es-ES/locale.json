@@ -32,7 +32,7 @@
     "error": {
       "empty": "La zona no tiene geometría. Elija otra zona.",
       "no_polygon": "La zona no tiene superficie. Use una zona de polígonos o de puntos.",
-      "antimeridian": "La zona cruza el meridiano 180°. Divídala en dos partes, una a cada lado de 180°, y genere cada una.",
+      "antimeridian": "La zona cruza el meridiano 180°. Divídala en dos partes, una a cada lado de 180°, y genere cada una. Las celdas que cruzan 180° se generan con la parte que termina en +180°.",
       "fetch": "No se pudo leer la geometría de la zona: {error}"
     }
   },

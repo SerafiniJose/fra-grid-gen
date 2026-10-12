@@ -11,12 +11,22 @@ correction from `reference/FRA RSS_ISEA3H generation 20sep26.R`, in Python.
 - Limits: a warning at 2,000,000 estimated cells, a block above 10,000,000. The Shapefile option is
   unavailable above 4,000,000 cells (2 GB per file, 10-character field names, no embedded metadata).
 
+- `area_ha` is the geodesic cell area on the WGS84 ellipsoid (pyproj `Geod`). The R script's
+  spherical s2 `st_area` differs from it by about −0.45 % at the equator to +0.9 % at the poles.
+- Antimeridian: an AOI that crosses 180° is refused; split it at 180° and generate each part.
+  The column of cells straddling ±180° belongs to the part that ends at +180° (the R script's
+  unwrap moves those cells to +180°), so a part touching −180° generated alone lacks that column.
+
 ## Run
 
 ```bash
-micromamba create -f sepal_environment.yml   # env "fra-grid", includes the dggrid binary
-./run_solara.sh                               # http://localhost:8911
+micromamba create -f sepal_environment.yml        # env "fra-grid", includes the dggrid binary
+micromamba run -n fra-grid ./run_solara.sh        # http://localhost:8911
 ```
+
+Or `micromamba activate fra-grid` first, then `./run_solara.sh`. A local run needs SEPAL dev
+credentials in a `.env` file at the repo root (`run_solara.sh` sources it): `PYSEPAL_DEV_AUTH=1`,
+`LOCAL_SEPAL_USER`, `LOCAL_SEPAL_PASSWORD` and `SEPAL_HOST`. Never commit `.env` (it is git-ignored).
 
 On SEPAL the module runs through `ui.ipynb` (kernel `venv-fra_grid_generator`).
 

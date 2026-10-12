@@ -44,3 +44,12 @@ def test_every_key_used_in_code_exists():
 def test_t_formats_and_degrades_to_key():
     assert i18n.t("grid.success", level=17, cells="330", file="g.gpkg") == "r17 grid ready: 330 cells → g.gpkg"
     assert i18n.t("does.not.exist") == "does.not.exist"
+
+
+def test_antimeridian_message_says_which_part_carries_the_180_cells():
+    import json
+    from pathlib import Path
+
+    for loc in ("en", "es-ES"):
+        catalog = json.loads((Path(__file__).parents[1] / "component" / "message" / loc / "locale.json").read_text())
+        assert "+180°" in catalog["aoi"]["error"]["antimeridian"], loc

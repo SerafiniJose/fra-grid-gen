@@ -65,3 +65,7 @@ def test_read_gpkg_metadata_absent(tmp_path):
     frame = gpd.GeoDataFrame({"a": [1]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326")
     pyogrio.write_dataframe(frame, gpkg, layer="plain", driver="GPKG")
     assert md.read_gpkg_metadata(gpkg, "plain") is None
+
+
+def test_area_ha_doc_names_the_wgs84_ellipsoid():
+    assert md.FIELD_DOCS["area_ha"] == "geodesic cell area on the WGS84 ellipsoid, hectares"
