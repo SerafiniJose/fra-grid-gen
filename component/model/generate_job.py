@@ -74,7 +74,12 @@ def start_generation(state, request, notifier, texts: JobTexts, *, build=build_g
         cancel = threading.Event()
         state.cancel_event.set(cancel)
         state.job.set(JobState(status="running", name=request.name, level=request.level))
-    spawn_in_context(_run, (state, request, notifier, texts, cancel, build))
+    try:
+        spawn_in_context(_run, (state, request, notifier, texts, cancel, build))
+    except Exception as exc:  # no worker: undo the start so Generate stays usable
+        logger.error("Could not start grid generation: %r", exc)
+        _finish_failed(state, cancel, format_error(exc, texts))
+        return False
     return True
 
 
@@ -86,7 +91,29 @@ def cancel_generation(state) -> bool:
     return True
 
 
+def _finish_failed(state, cancel, message: str) -> None:
+    """Mark the job failed, clearing only this job's cancel event, status last."""
+    if state.cancel_event.value is cancel:
+        state.cancel_event.set(None)
+    state.job.set(replace(state.job.value, status="failed", message=message))
+
+
 def _run(state, request, notifier, texts, cancel, build):
+    # Guarantees the job never stays "running": if a side effect of a normal
+    # finish raises (a toast, a reactive publish), the job is failed here.
+    # Only this job can be running (a new start needs a finished status).
+    message = ""
+    try:
+        _execute(state, request, notifier, texts, cancel, build)
+    except Exception as exc:
+        logger.error("Grid job did not finish cleanly: %r", exc)
+        message = format_error(exc, texts)
+    finally:
+        if state.job.value.running:
+            _finish_failed(state, cancel, message)
+
+
+def _execute(state, request, notifier, texts, cancel, build):
     # The final status is set last, after every side effect and after the cancel
     # event is cleared: observers treat done/cancelled/failed as "job finished".
     try:

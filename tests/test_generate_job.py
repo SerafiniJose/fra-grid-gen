@@ -189,3 +189,51 @@ def test_finished_job_does_not_clear_next_jobs_cancel_event():
     assert release.wait(5)
     _wait_idle(state)
     assert state.job.value.status == "cancelled"
+
+
+class _RaisingSuccessNotifier(FakeNotifier):
+    def success(self, message, *, timeout=None):
+        raise RuntimeError("toast bus gone")
+
+
+class _RaisingCancelNotifier(FakeNotifier):
+    def cancel(self, message, *, timeout=None):
+        raise RuntimeError("toast bus gone")
+
+
+def test_success_side_effect_raising_still_finishes_the_job():
+    state, notifier = AppState(), _RaisingSuccessNotifier()
+    gj.start_generation(state, _request(), notifier, TEXTS, build=lambda r, *, on_progress, cancel: _result())
+    _wait_idle(state)
+    assert state.job.value.status == "failed"
+    assert state.job.value.message == "failed: toast bus gone"
+    assert state.cancel_event.value is None
+    assert gj.start_generation(state, _request("b"), FakeNotifier(), TEXTS,
+                               build=lambda r, *, on_progress, cancel: _result("b"))
+    _wait_idle(state)
+    assert state.job.value.status == "done"
+
+
+def test_cancel_side_effect_raising_still_finishes_the_job():
+    state, notifier = AppState(), _RaisingCancelNotifier()
+
+    def build(request, *, on_progress, cancel):
+        raise BuildCancelled()
+
+    gj.start_generation(state, _request(), notifier, TEXTS, build=build)
+    _wait_idle(state)
+    assert state.job.value.status == "failed"
+    assert state.cancel_event.value is None
+
+
+def test_spawn_failure_rolls_the_start_back(monkeypatch):
+    state = AppState()
+
+    def broken_spawn(fn, args):
+        raise RuntimeError("no thread")
+
+    monkeypatch.setattr(gj, "spawn_in_context", broken_spawn)
+    assert gj.start_generation(state, _request(), FakeNotifier(), TEXTS, build=lambda *a, **k: _result()) is False
+    assert not state.job.value.running
+    assert state.job.value.status == "failed" and state.job.value.message == "failed: no thread"
+    assert state.cancel_event.value is None
