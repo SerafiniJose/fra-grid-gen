@@ -1,0 +1,119 @@
+{
+  "app": {
+    "title": "FRA Grid Generator",
+    "panel_title": "Grid workflow"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "refresh": "Refresh"
+  },
+  "dialog": {
+    "confirm_default_title": "Are you sure?",
+    "confirm_default_message": "This action cannot be undone.",
+    "confirm_default_label": "Confirm"
+  },
+  "tabs": {
+    "aoi": "1 · AOI",
+    "grid": "2 · Grid",
+    "outputs": "3 · Outputs"
+  },
+  "aoi": {
+    "description": "Select the area to cover with FRA hexagons: an administrative unit, a vector file, a drawn shape, points or an Earth Engine asset.",
+    "resolving": "Reading the AOI geometry…",
+    "summary_title": "Area of interest",
+    "method": "Method",
+    "area": "Area",
+    "bbox": "Bounding box",
+    "points": "Points",
+    "estimate_r17": "Estimated FRA r17 cells",
+    "continue": "Continue to Grid →",
+    "error": {
+      "empty": "The AOI has no geometry. Pick another area.",
+      "no_polygon": "The AOI has no polygon area. Use a polygon or point AOI.",
+      "antimeridian": "The AOI crosses the 180° meridian. Split it into two parts, one on each side of 180°, and generate each one.",
+      "fetch": "Could not read the AOI geometry: {error}"
+    }
+  },
+  "grid": {
+    "locked": "Select an AOI first (tab 1).",
+    "levels_title": "Grid level",
+    "col": {
+      "level": "Level",
+      "area": "Cell area",
+      "spacing": "Spacing",
+      "global": "Global cells",
+      "estimate": "Est. cells in AOI",
+      "status": "Status"
+    },
+    "status": {
+      "fra": "FRA RSS",
+      "ok": "OK",
+      "warn": "Large",
+      "blocked": "Too large"
+    },
+    "caption": "Aperture-3 cells don't nest: finer cells are linked to FRA cells with fra_r17_id. The FRA correction is validated at r17 only.",
+    "name_label": "Output name",
+    "name_hint": "Letters, digits, _ and - only. It is also the folder name.",
+    "name_error": {
+      "empty": "Enter a name.",
+      "invalid": "Use letters, digits, _ and - only, starting with a letter or digit.",
+      "too_long": "Use at most 80 characters."
+    },
+    "name_exists": "A grid with this name exists. Generating replaces its folder.",
+    "name_taken": "A folder with this name exists and was not made by this app. Choose another name.",
+    "formats_title": "Formats",
+    "gpkg": "GeoPackage (.gpkg)",
+    "shp": "Shapefile (.shp)",
+    "shp_hint": "Max 2 GB per file (~4M cells), 10-character field names, no embedded metadata.",
+    "shp_disabled": "Shapefile is unavailable above 4,000,000 estimated cells.",
+    "formats_empty": "Pick at least one format.",
+    "folder": "Output folder",
+    "generate": "Generate grid",
+    "cancel": "Cancel",
+    "blocked_hint": "About {cells} cells is over the 10,000,000 limit. Use a smaller AOI or a coarser level.",
+    "warn_title": "Large grid",
+    "warn_message": "About {cells} cells. This can take several minutes and about {size} of disk.",
+    "warn_confirm": "Generate anyway",
+    "overwrite_title": "Replace existing grid?",
+    "overwrite_message": "The folder {name} already exists. It is replaced once the new grid is complete.",
+    "overwrite_confirm": "Replace",
+    "task_title": "r{level} grid · {aoi}",
+    "progress": "Tile {done}/{total} · {cells} cells",
+    "success": "r{level} grid ready: {cells} cells → {file}",
+    "cancelled": "Grid generation cancelled. No files were kept.",
+    "failed": "Grid generation failed: {error}",
+    "engine_missing": "DGGRID binary not found: reinstall the module environment.",
+    "disk_full": "Not enough disk space to write {name}.",
+    "result_title": "Grid ready",
+    "result_summary": "{cells} cells in {seconds} s",
+    "show_on_map": "Show on map",
+    "preview_too_large": "Map preview is limited to 50,000 cells.",
+    "view_metadata": "View metadata",
+    "unvalidated": "correction unvalidated"
+  },
+  "outputs": {
+    "title": "Generated grids",
+    "empty": "No grids yet. Generate one in the Grid tab.",
+    "cells": "{cells} cells",
+    "show": "Show on map",
+    "hide": "Remove from map",
+    "metadata": "Metadata",
+    "delete_title": "Delete grid?",
+    "delete_message": "The folder {name} and all its files ({size}) will be deleted. This cannot be undone.",
+    "deleted": "Deleted {name}.",
+    "delete_failed": "Could not delete {name}: {error}",
+    "busy": "This grid is being generated."
+  },
+  "metadata": {
+    "title": "Metadata · {name}",
+    "folder": "Folder",
+    "generated": "Generated",
+    "dggs": "DGGS",
+    "aoi": "AOI",
+    "run": "Run",
+    "correction": "Correction",
+    "raw": "Raw JSON"
+  }
+}

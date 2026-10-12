@@ -1,0 +1,119 @@
+{
+  "app": {
+    "title": "Generador de grillas FRA",
+    "panel_title": "Flujo de la grilla"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "delete": "Eliminar",
+    "refresh": "Actualizar"
+  },
+  "dialog": {
+    "confirm_default_title": "¿Está seguro?",
+    "confirm_default_message": "Esta acción no se puede deshacer.",
+    "confirm_default_label": "Confirmar"
+  },
+  "tabs": {
+    "aoi": "1 · Zona",
+    "grid": "2 · Grilla",
+    "outputs": "3 · Resultados"
+  },
+  "aoi": {
+    "description": "Seleccione la zona a cubrir con hexágonos FRA: una unidad administrativa, un archivo vectorial, una forma dibujada, puntos o un asset de Earth Engine.",
+    "resolving": "Leyendo la geometría de la zona…",
+    "summary_title": "Zona de interés",
+    "method": "Método",
+    "area": "Superficie",
+    "bbox": "Extensión",
+    "points": "Puntos",
+    "estimate_r17": "Hexágonos FRA r17 estimados",
+    "continue": "Continuar a Grilla →",
+    "error": {
+      "empty": "La zona no tiene geometría. Elija otra zona.",
+      "no_polygon": "La zona no tiene superficie. Use una zona de polígonos o de puntos.",
+      "antimeridian": "La zona cruza el meridiano 180°. Divídala en dos partes, una a cada lado de 180°, y genere cada una.",
+      "fetch": "No se pudo leer la geometría de la zona: {error}"
+    }
+  },
+  "grid": {
+    "locked": "Seleccione primero una zona (pestaña 1).",
+    "levels_title": "Nivel de la grilla",
+    "col": {
+      "level": "Nivel",
+      "area": "Área de celda",
+      "spacing": "Espaciado",
+      "global": "Celdas globales",
+      "estimate": "Celdas est. en la zona",
+      "status": "Estado"
+    },
+    "status": {
+      "fra": "FRA RSS",
+      "ok": "OK",
+      "warn": "Grande",
+      "blocked": "Demasiado grande"
+    },
+    "caption": "Las celdas de apertura 3 no se anidan: las celdas más finas se vinculan a las celdas FRA con fra_r17_id. La corrección FRA está validada solo en r17.",
+    "name_label": "Nombre de salida",
+    "name_hint": "Solo letras, dígitos, _ y -. También es el nombre de la carpeta.",
+    "name_error": {
+      "empty": "Escriba un nombre.",
+      "invalid": "Use solo letras, dígitos, _ y -, empezando por una letra o un dígito.",
+      "too_long": "Use como máximo 80 caracteres."
+    },
+    "name_exists": "Ya existe una grilla con este nombre. Generarla reemplaza su carpeta.",
+    "name_taken": "Existe una carpeta con este nombre que no creó esta aplicación. Elija otro nombre.",
+    "formats_title": "Formatos",
+    "gpkg": "GeoPackage (.gpkg)",
+    "shp": "Shapefile (.shp)",
+    "shp_hint": "Máx. 2 GB por archivo (~4M celdas), nombres de campo de 10 caracteres, sin metadatos incrustados.",
+    "shp_disabled": "El shapefile no está disponible por encima de 4.000.000 de celdas estimadas.",
+    "formats_empty": "Elija al menos un formato.",
+    "folder": "Carpeta de salida",
+    "generate": "Generar grilla",
+    "cancel": "Cancelar",
+    "blocked_hint": "Unas {cells} celdas superan el límite de 10.000.000. Use una zona más pequeña o un nivel más grueso.",
+    "warn_title": "Grilla grande",
+    "warn_message": "Unas {cells} celdas. Puede tardar varios minutos y ocupar unos {size} de disco.",
+    "warn_confirm": "Generar igualmente",
+    "overwrite_title": "¿Reemplazar la grilla existente?",
+    "overwrite_message": "La carpeta {name} ya existe. Se reemplaza cuando la nueva grilla esté completa.",
+    "overwrite_confirm": "Reemplazar",
+    "task_title": "Grilla r{level} · {aoi}",
+    "progress": "Bloque {done}/{total} · {cells} celdas",
+    "success": "Grilla r{level} lista: {cells} celdas → {file}",
+    "cancelled": "Generación cancelada. No se guardó ningún archivo.",
+    "failed": "La generación falló: {error}",
+    "engine_missing": "No se encontró el binario DGGRID: reinstale el entorno del módulo.",
+    "disk_full": "No hay espacio en disco suficiente para escribir {name}.",
+    "result_title": "Grilla lista",
+    "result_summary": "{cells} celdas en {seconds} s",
+    "show_on_map": "Ver en el mapa",
+    "preview_too_large": "La vista en el mapa se limita a 50.000 celdas.",
+    "view_metadata": "Ver metadatos",
+    "unvalidated": "corrección no validada"
+  },
+  "outputs": {
+    "title": "Grillas generadas",
+    "empty": "Aún no hay grillas. Genere una en la pestaña Grilla.",
+    "cells": "{cells} celdas",
+    "show": "Ver en el mapa",
+    "hide": "Quitar del mapa",
+    "metadata": "Metadatos",
+    "delete_title": "¿Eliminar la grilla?",
+    "delete_message": "Se eliminará la carpeta {name} con todos sus archivos ({size}). No se puede deshacer.",
+    "deleted": "Se eliminó {name}.",
+    "delete_failed": "No se pudo eliminar {name}: {error}",
+    "busy": "Esta grilla se está generando."
+  },
+  "metadata": {
+    "title": "Metadatos · {name}",
+    "folder": "Carpeta",
+    "generated": "Generado",
+    "dggs": "DGGS",
+    "aoi": "Zona",
+    "run": "Ejecución",
+    "correction": "Corrección",
+    "raw": "JSON completo"
+  }
+}
