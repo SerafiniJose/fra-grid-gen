@@ -13,6 +13,9 @@ from component.parameter import grid as g
 _R_KM = g.SPHERE_RADIUS_M / 1000.0
 # GPKG bytes per cell, measured on r17 output (7 vertices, 6 attributes + rtree).
 _BYTES_PER_CELL = 420
+# Hidden PMTiles map preview bytes per cell at the PREVIEW_ZOOMS ranges:
+# 75-97 measured on ~100k-cell grids, r17-r21 (2026-10-12).
+_PREVIEW_BYTES_PER_CELL = 90
 
 
 @dataclass(frozen=True)
@@ -94,4 +97,5 @@ def estimate_levels(area_km2: float, perimeter_km: dict, n_points: int | None) -
 
 
 def estimated_size_bytes(cells: int) -> int:
-    return int(cells) * _BYTES_PER_CELL
+    """GPKG plus the map preview (the Shapefile, when ticked, comes on top)."""
+    return int(cells) * (_BYTES_PER_CELL + _PREVIEW_BYTES_PER_CELL)

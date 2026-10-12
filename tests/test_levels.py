@@ -68,3 +68,7 @@ def test_estimate_levels_rows_and_shp_limit():
 
 def test_estimated_size_is_positive_and_monotonic():
     assert 0 < levels.estimated_size_bytes(1_000) < levels.estimated_size_bytes(1_000_000)
+
+
+def test_estimated_size_includes_the_map_preview():
+    assert levels.estimated_size_bytes(1_000) == 1_000 * (levels._BYTES_PER_CELL + levels._PREVIEW_BYTES_PER_CELL)
