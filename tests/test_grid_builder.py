@@ -15,10 +15,13 @@ from component.scripts import dggrid_engine as engine
 from component.scripts import grid_builder as gb
 from component.scripts import metadata as md
 from component.scripts import outputs_index as oi
+from component.scripts import pmtiles_preview as pp
 from component.scripts.aoi_prep import prepare_aoi
 from component.scripts.fra_correction import correct_geometries, to_sphere_geometry, unwrap_antimeridian
 
 needs_engine = pytest.mark.skipif(shutil.which("dggrid") is None, reason="dggrid binary not on PATH")
+needs_tippecanoe = pytest.mark.skipif(pp.resolve_tippecanoe() is None, reason="tippecanoe not available")
+PREVIEW = [".preview.pmtiles"] if pp.resolve_tippecanoe() else []
 CHACO = (-60.10, -22.40, -60.00, -22.30)
 
 
@@ -146,7 +149,7 @@ def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
     assert progress[-1] == (2, 2, 330)
     assert sorted(p.name for p in folder.iterdir()) == sorted(
         ["chaco17.gpkg", "chaco17.shp", "chaco17.shx", "chaco17.dbf", "chaco17.prj", "chaco17.cpg",
-         "metadata.json", "aoi.geojson"]
+         "metadata.json", "aoi.geojson", *PREVIEW]
     )
     assert [p.name for p in results_root.iterdir()] == ["chaco17"]  # no .part left
     assert [p.name for p in (tmp_path / "local").iterdir()] == ["dggrid"]  # work dir removed
@@ -174,7 +177,9 @@ def test_r18_links_cells_to_fra_r17(results_root, chaco_aoi):
     assert res.cell_count == len(cells) == 935
     assert cells["fra_r17_id"].dtype == np.int64
     assert set(cells["fra_r17_id"]) <= _direct_ids(box(*CHACO).buffer(0.02), 17)
-    assert sorted(p.name for p in res.folder.iterdir()) == ["aoi.geojson", "chaco18.gpkg", "metadata.json"]
+    assert sorted(p.name for p in res.folder.iterdir()) == sorted(
+        ["aoi.geojson", "chaco18.gpkg", "metadata.json", *PREVIEW]
+    )
 
 
 @needs_engine
@@ -262,6 +267,54 @@ def test_area_ha_is_geodesic_wgs84(results_root, chaco_aoi):
     poly = cells.geometry.iloc[0]
     expected = abs(Geod(ellps="WGS84").geometry_area_perimeter(poly)[0]) / 1e4
     assert cells["area_ha"].iloc[0] == pytest.approx(expected, abs=1e-3)
+
+
+@needs_engine
+@needs_tippecanoe
+def test_preview_is_built_but_not_a_deliverable(results_root, chaco_aoi, caplog):
+    with caplog.at_level("INFO", logger="fra_grid"):
+        res = gb.build_grid(gb.BuildRequest(chaco_aoi, 18, "pv", formats=("shp",)))  # shp-only still previews
+    preview = res.folder / ".preview.pmtiles"
+    assert preview.read_bytes()[:7] == b"PMTiles"
+    assert res.metadata["preview"] == {"file": ".preview.pmtiles", "minzoom": 11, "maxzoom": 14}
+    assert md.read_metadata_json(res.folder)["preview"] == res.metadata["preview"]
+    assert ".preview.pmtiles" not in res.metadata["run"]["files"]
+    assert preview not in res.files
+    messages = [r.getMessage() for r in caplog.records]
+    assert "Building map preview" in messages
+    assert any(m.startswith("Map preview ready (") for m in messages)
+
+
+@needs_engine
+def test_missing_tippecanoe_keeps_the_grid(results_root, chaco_aoi, monkeypatch, caplog):
+    monkeypatch.setattr(pp, "resolve_tippecanoe", lambda: None)
+    with caplog.at_level("WARNING", logger="fra_grid"):
+        res = gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "nop"))
+    assert res.cell_count == 330 and res.metadata["preview"] is None
+    assert not (res.folder / ".preview.pmtiles").exists()
+    assert any(r.levelname == "WARNING" and "Map preview skipped" in r.getMessage() for r in caplog.records)
+
+
+@needs_engine
+def test_failing_preview_keeps_the_grid(results_root, chaco_aoi, monkeypatch):
+    def boom(*a, **k):
+        raise pp.PreviewFailed("tippecanoe exited with 1")
+
+    monkeypatch.setattr(pp, "build_preview", boom)
+    res = gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "f"))
+    assert res.metadata["preview"] is None and (res.folder / "f.gpkg").exists()
+
+
+@needs_engine
+def test_cancel_during_preview_cancels_the_run(results_root, chaco_aoi, monkeypatch, tmp_path):
+    def cancelled(*a, **k):
+        raise pp.PreviewCancelled()
+
+    monkeypatch.setattr(pp, "build_preview", cancelled)
+    with pytest.raises(gb.BuildCancelled):
+        gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "c"))
+    assert list(results_root.iterdir()) == []
+    assert [p.name for p in (tmp_path / "local").iterdir()] == ["dggrid"]
 
 
 def test_geodesic_area_helper_speed_per_100k():

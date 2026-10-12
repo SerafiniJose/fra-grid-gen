@@ -47,6 +47,15 @@ def test_list_outputs_newest_first_and_skips_non_grids(tmp_path):
     assert out[0].size_bytes > 100
 
 
+def test_hidden_preview_is_not_listed_but_counts_in_the_size(tmp_path):
+    make_grid(tmp_path, "g")
+    before = oi.load_output(tmp_path, "g").size_bytes
+    (tmp_path / "g" / ".preview.pmtiles").write_bytes(b"x" * 1000)
+    out = oi.load_output(tmp_path, "g")
+    assert ".preview.pmtiles" not in [n for n, _ in out.files]
+    assert out.size_bytes == before + 1000  # what a delete frees
+
+
 def test_name_status(tmp_path):
     make_grid(tmp_path, "g")
     (tmp_path / "other").mkdir()

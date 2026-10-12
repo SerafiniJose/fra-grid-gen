@@ -30,6 +30,7 @@ def test_record_shape(chaco_aoi):
     assert rec["generator"]["dggrid"] == "8.44" and rec["generator"]["app"] == "fra_grid_generator"
     assert "fra_r17_id" not in rec["fields"]
     assert "fra_r17_id" in _record(chaco_aoi, level=18)["fields"]
+    assert rec["preview"] is None  # no preview built
     json.dumps(rec)  # serialisable
 
 

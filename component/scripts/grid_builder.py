@@ -11,6 +11,10 @@ returned by two neighbouring clips is written exactly once. Each clip is the
 search region (AOI simplified by a quarter cell, buffered by one cell spacing
 plus the inverse-correction margin) cut to the buffered tile and moved into
 sphere space: DGGRID's GDAL clip misses edge cells without that buffer.
+
+After the GPKG is complete a PMTiles map preview (``g.PREVIEW_FILE``, hidden,
+not a deliverable) is built from it; a missing or failing tippecanoe only
+skips the preview (WARNING), it never fails the grid.
 """
 
 import asyncio
@@ -33,10 +37,11 @@ from component.parameter.directory import results_dir
 from component.scripts import dggrid_engine as engine
 from component.scripts import metadata as md
 from component.scripts import outputs_index as oi
+from component.scripts import pmtiles_preview as pp
 from component.scripts.fra_correction import correct_geometries, to_sphere_geometry, unwrap_antimeridian
 from component.scripts.levels import level_stats
 from component.scripts.scratch import local_scratch_dir
-from component.scripts.writers import append_cells, gpkg_to_shp, write_aoi_geojson
+from component.scripts.writers import append_cells, gpkg_to_shp, human_size, write_aoi_geojson
 
 logger = logging.getLogger(g.LOGGER_NAME)
 
@@ -191,6 +196,26 @@ def _check(cancel) -> None:
         raise BuildCancelled()
 
 
+def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, cancel):
+    """Build ``part/g.PREVIEW_FILE``; its metadata entry, or None when skipped."""
+    minzoom, maxzoom = g.PREVIEW_ZOOMS[level]
+    target = part / g.PREVIEW_FILE
+    logger.info("Building map preview")
+    try:
+        built = pp.build_preview(gpkg_tmp, name, work / g.PREVIEW_FILE, minzoom=minzoom, maxzoom=maxzoom,
+                                 tmp_dir=work, cancel=cancel)
+        size = built.stat().st_size
+        shutil.move(str(built), str(target))
+    except pp.PreviewCancelled:
+        raise BuildCancelled() from None
+    except Exception as exc:  # the preview is optional: keep the grid
+        logger.warning("Map preview skipped: %s", exc)
+        target.unlink(missing_ok=True)
+        return None
+    logger.info("Map preview ready (%s)", human_size(size))
+    return {"file": g.PREVIEW_FILE, "minzoom": minzoom, "maxzoom": maxzoom}
+
+
 def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel, now):
     aoi, level, name = request.aoi, request.level, request.name
     logger.info("Preparing AOI")
@@ -224,12 +249,14 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
         files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{name}.shp", name)]
     write_aoi_geojson(aoi.geometry, part / md.AOI_FILE)
     files += [md.AOI_FILE, md.METADATA_FILE]
+    preview = _build_preview(gpkg_tmp, name, level, part, work, cancel)
+    _check(cancel)
 
     logger.info("Writing metadata")
     record = md.build_record(
         name=name, aoi=aoi, level=level, formats=request.formats, files=files, cell_count=total,
         n_tiles=len(tiles), tile_deg=g.TILE_DEG[level], clip_buffer_deg=buf,
-        duration_s=time.monotonic() - t0, versions=engine.versions(), generated_at=now,
+        duration_s=time.monotonic() - t0, versions=engine.versions(), generated_at=now, preview=preview,
     )
     if keep_gpkg:
         md.embed_in_gpkg(gpkg_tmp, name, record)
