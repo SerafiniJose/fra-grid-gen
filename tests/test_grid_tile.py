@@ -2,7 +2,6 @@ import threading
 from types import SimpleNamespace
 
 import ipyvuetify as v
-import reacton
 
 from component.tile import grid_tile as gt
 
@@ -33,67 +32,80 @@ def test_confirm_steps():
     assert gt.confirm_steps("warn", "grid") == ["warn", "overwrite"]
 
 
-def test_file_lines_show_name_and_size_and_skip_missing(tmp_path):
-    f = tmp_path / "g.gpkg"
-    f.write_bytes(b"x" * 2048)
-    lines = gt.file_lines((f, tmp_path / "gone.shp"))
-    assert len(lines) == 1
-    assert lines[0].startswith("g.gpkg · ") and "KB" in lines[0]
-
-
-def test_result_card_lists_files_with_sizes(tmp_path):
-    f = tmp_path / "g.gpkg"
-    f.write_bytes(b"x" * 2048)
-    result = SimpleNamespace(name="g", folder=tmp_path, files=(f,), cell_count=10, duration_s=1.5,
-                             metadata={"run": {"formats": ["gpkg"]}})
-    box_, rc = reacton.render(
-        gt.ResultCard(result=result, map_=None, on_show=lambda: None, on_metadata=lambda: None),
-        handle_error=False)
-    try:
-        texts = [w.children[0] for w in rc.find(v.Html).widgets if w.children and isinstance(w.children[0], str)]
-        assert any(s.startswith("g.gpkg · ") and "KB" in s for s in texts), texts
-        assert str(tmp_path) in texts
-    finally:
-        rc.close()
 
 
 def _button_labels(rc):
     return [w.children[0] for w in rc.find(v.Btn).widgets if w.children and isinstance(w.children[0], str)]
 
 
-def test_cancel_stays_reachable_when_the_aoi_is_cleared_mid_job(results_root):
-    from component.model.state_manager import AppState, JobState
+
+
+
+def _texts(rc):
+    return [w.children[0] for w in rc.find(v.Html).widgets if w.children and isinstance(w.children[0], str)]
+
+
+def _render_with_aoi(state, chaco_aoi, monkeypatch):
     from _notification_host import render_under_notifications
 
-    state = AppState()  # aoi_info is None, e.g. the AOI tab is resolving a new AOI
-    state.job.set(JobState(status="running", name="g", level=17, done=1, total=4, cells=50))
-    state.cancel_event.set(threading.Event())
-    box_, rc = render_under_notifications(lambda: gt.GridTile(state=state, map_=None), handle_error=False)
-    try:
-        cancel = [w for w in rc.find(v.Btn).widgets if w.children == ["Cancel"]]
-        assert len(cancel) == 1, _button_labels(rc)
-        cancel[0].fire_event("click", {})
-        assert state.cancel_event.value.is_set()
-        assert "Generate grid" not in _button_labels(rc)
-    finally:
-        rc.close()
+    monkeypatch.setattr(gt, "_engine_ok", lambda: True)
+    state.aoi_info.set(chaco_aoi)
+    return render_under_notifications(lambda: gt.GridTile(state=state, map_=None), handle_error=False)
 
 
-def test_failed_message_shows_without_an_aoi(results_root):
+def test_grid_tab_shows_no_job_progress_folder_or_result(results_root, chaco_aoi, monkeypatch):
     from component.model.state_manager import AppState, JobState
-    from _notification_host import render_under_notifications
 
     state = AppState()
-    state.job.set(JobState(status="failed", name="g", level=17, message="boom happened"))
-    box_, rc = render_under_notifications(lambda: gt.GridTile(state=state, map_=None), handle_error=False)
+    state.job.set(JobState(status="running", name="g", level=17, done=1, total=4, cells=50))
+    state.cancel_event.set(threading.Event())
+    box_, rc = _render_with_aoi(state, chaco_aoi, monkeypatch)
     try:
-        assert any("boom happened" in str(w.children) for w in rc.find(v.Alert).widgets)
+        in_dialogs = [w.children for w in rc.find(v.Dialog).find(v.Btn).widgets]
+        assert _button_labels(rc).count("Cancel") == in_dialogs.count(["Cancel"])  # only the confirm dialogs'
+        assert not rc.find(v.ProgressLinear).widgets
+        generate = [w for w in rc.find(v.Btn).widgets if w.children == ["Generate grid"]]
+        assert generate and generate[0].disabled
+        texts = _texts(rc)
+        assert "Output folder" not in texts and not any(str(results_root) in s for s in texts)
+        state.last_output.set(SimpleNamespace(name="g", folder=results_root / "g", files=(), cell_count=1,
+                                              duration_s=1.0, metadata={}))
+        state.job.set(JobState(status="failed", name="g", level=17, message="boom happened"))
+        assert not any("boom happened" in str(w.children) for w in rc.find(v.Alert).widgets)
+        state.job.set(JobState(status="done", name="g", level=17))
+        assert "Grid ready" not in _texts(rc) and "Show on map" not in _button_labels(rc)
     finally:
         rc.close()
 
 
-def _card_texts(rc):
-    return [w.children[0] for w in rc.find(v.Html).widgets if w.children and isinstance(w.children[0], str)]
+def test_generate_starts_the_job_and_opens_the_outputs_tab(results_root, chaco_aoi, monkeypatch):
+    from component.model.state_manager import AppState
+
+    started = []
+    monkeypatch.setattr(gt, "start_generation", lambda state, request, *a, **k: started.append(request) or True)
+    state = AppState()
+    box_, rc = _render_with_aoi(state, chaco_aoi, monkeypatch)
+    try:
+        assert state.active_tab.value == 0
+        [w for w in rc.find(v.Btn).widgets if w.children == ["Generate grid"]][0].fire_event("click", {})
+        assert [r.level for r in started] == [17]
+        assert state.active_tab.value == 2
+    finally:
+        rc.close()
+
+
+def test_a_refused_start_stays_on_the_grid_tab(results_root, chaco_aoi, monkeypatch):
+    from component.model.state_manager import AppState
+
+    monkeypatch.setattr(gt, "start_generation", lambda *a, **k: False)
+    state = AppState()
+    state.active_tab.set(1)
+    box_, rc = _render_with_aoi(state, chaco_aoi, monkeypatch)
+    try:
+        [w for w in rc.find(v.Btn).widgets if w.children == ["Generate grid"]][0].fire_event("click", {})
+        assert state.active_tab.value == 1
+    finally:
+        rc.close()
 
 
 def _big_result(tmp_path, preview):
@@ -103,30 +115,6 @@ def _big_result(tmp_path, preview):
     return SimpleNamespace(name="g", folder=tmp_path, files=(), cell_count=3_000_000, duration_s=1.0, metadata=meta)
 
 
-def test_result_card_large_grid_with_preview_can_be_shown(tmp_path):
-    box_, rc = reacton.render(
-        gt.ResultCard(result=_big_result(tmp_path, True), map_=object(), on_show=lambda: None,
-                      on_metadata=lambda: None, zoom_hint=True), handle_error=False)
-    try:
-        show = [w for w in rc.find(v.Btn).widgets if w.children == ["Show on map"]]
-        assert show and not show[0].disabled
-        texts = _card_texts(rc)
-        assert "Zoom in to see the cells." in texts
-        assert not any("limited to 50,000" in s for s in texts)
-    finally:
-        rc.close()
-
-
-def test_result_card_large_grid_without_preview_is_capped(tmp_path):
-    box_, rc = reacton.render(
-        gt.ResultCard(result=_big_result(tmp_path, False), map_=object(), on_show=lambda: None,
-                      on_metadata=lambda: None), handle_error=False)
-    try:
-        show = [w for w in rc.find(v.Btn).widgets if w.children == ["Show on map"]]
-        assert show[0].disabled
-        assert any("limited to 50,000" in s for s in _card_texts(rc))
-    finally:
-        rc.close()
 
 
 def test_zoom_hint_only_for_the_shown_pmtiles_grid_below_its_min_zoom():

@@ -30,4 +30,5 @@ def test_level_constants_are_consistent():
 def test_preview_constants():
     assert set(grid.PREVIEW_ZOOMS) == set(grid.LEVELS)
     assert all(0 <= lo < hi <= 16 for lo, hi in grid.PREVIEW_ZOOMS.values())
+    assert all(lo == grid.PREVIEW_MIN_ZOOM == 6 for lo, _ in grid.PREVIEW_ZOOMS.values())  # country-scale overview
     assert grid.PREVIEW_FILE.startswith(".") and grid.PREVIEW_FILE.endswith(".pmtiles")

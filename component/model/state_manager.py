@@ -25,6 +25,13 @@ class JobState:
     total: int = 0
     cells: int = 0
     message: str = ""
+    title: str = ""  # "r17 grid · <AOI>", resolved in the click handler
+    formats: tuple = ()
+    started_at: float = 0.0  # time.monotonic()
+    step: str = ""  # job_progress.STEPS
+    step_fraction: object = None  # 0..1, or None when the step cannot measure itself
+    step_started_at: float = 0.0
+    finished_at: float = 0.0  # set when the job is done
 
     @property
     def running(self) -> bool:
@@ -51,6 +58,7 @@ class AppState:
         # Outputs tab and navigation
         self.outputs_signal = solara.reactive(0)  # bump to re-list the results folder
         self.preview_name = solara.reactive(None)  # grid shown on the map
+        self.open_output = solara.reactive(None)  # name of the one opened card in the grid list
         self.preview_minzoom = solara.reactive(None)  # its PMTiles min zoom; None for GeoJSON
         self.map_zoom = solara.reactive(None)  # the shared map's zoom, for the zoom hint
         self.active_tab = solara.reactive(0)

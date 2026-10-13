@@ -51,12 +51,13 @@ def test_unexpected_errors_become_fetch():
     assert state.aoi_error.value == ("fetch", "EE timeout")
 
 
-def test_summary_card_shows_estimate_and_continues(chaco_aoi):
+def test_summary_card_shows_estimate_and_continue_sits_below_it(chaco_aoi):
     went = []
-    box_, rc = reacton.render(aoi_tile.AoiSummary(info=chaco_aoi, on_continue=lambda: went.append(1)),
+    box_, rc = reacton.render(aoi_tile.AoiReady(info=chaco_aoi, on_continue=lambda: went.append(1)),
                               handle_error=False)
     try:
         assert rc.find(v.Html, children=["331"]).widgets  # r17 Steiner estimate for the Chaco box
+        assert not rc.find(v.Card).find(v.Btn).widgets  # the button is outside the card
         rc.find(v.Btn, children=["Continue to Grid →"]).widget.click()
         assert went == [1]
     finally:

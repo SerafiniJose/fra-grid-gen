@@ -83,7 +83,7 @@ def _result(name="g"):
 def test_success_publishes_result_and_toast():
     state, notifier = AppState(), FakeNotifier()
 
-    def build(request, *, on_progress, cancel):
+    def build(request, *, on_progress, cancel, **_):
         on_progress(1, 2, 100)
         on_progress(2, 2, 330)
         return _result()
@@ -98,12 +98,94 @@ def test_success_publishes_result_and_toast():
     assert state.cancel_event.value is None
 
 
+def test_start_records_title_formats_and_first_step():
+    state, notifier = AppState(), FakeNotifier()
+    release = threading.Event()
+
+    def build(request, *, on_progress, cancel, **_):
+        release.wait(5)
+        return _result()
+
+    request = BuildRequest(aoi=object(), level=17, name="g", formats=("gpkg", "shp"))
+    before = time.monotonic()
+    gj.start_generation(state, request, notifier, TEXTS, build=build)
+    job = state.job.value
+    assert (job.title, job.formats, job.step, job.step_fraction) == ("r17 grid · t", ("gpkg", "shp"), "cells", 0.0)
+    assert job.started_at >= before and job.step_started_at == job.started_at
+    release.set()
+    _wait_idle(state)
+
+
+def test_steps_publish_the_current_step_and_whole_percent_changes(monkeypatch):
+    ticks = iter(range(100))
+    monkeypatch.setattr(gj, "_clock", lambda: float(next(ticks)))
+    state, notifier = AppState(), FakeNotifier()
+    seen = []
+
+    def build(request, *, on_progress, cancel, on_step):
+        def snap(step, fraction):
+            on_step(step, fraction)
+            job = state.job.value
+            seen.append((job.step, job.step_fraction, job.step_started_at))
+
+        snap("cells", 0.0)
+        snap("cells", 0.5)
+        snap("preview", 0.0)
+        snap("preview", 0.004)  # under a whole percent: not re-published
+        snap("preview", 0.62)
+        snap("finish", None)
+        return _result()
+
+    gj.start_generation(state, _request(), notifier, TEXTS, build=build)
+    _wait_idle(state)
+    assert [(s, f) for s, f, _ in seen] == [
+        ("cells", 0.0), ("cells", 0.5), ("preview", 0.0), ("preview", 0.0), ("preview", 0.62), ("finish", None)]
+    starts = [t for _, _, t in seen]
+    assert starts[0] == starts[1] < starts[2] == starts[3] == starts[4] < starts[5]
+
+
+def test_done_records_the_finish_time(monkeypatch):
+    ticks = iter(range(100))
+    monkeypatch.setattr(gj, "_clock", lambda: float(next(ticks)))
+    state = AppState()
+    gj.start_generation(state, _request(), FakeNotifier(), TEXTS, build=lambda r, **_: _result())
+    _wait_idle(state)
+    job = state.job.value
+    assert job.status == "done" and job.finished_at > job.started_at
+
+
+def test_settle_opens_the_new_grid_and_clears_the_job_card():
+    state = AppState()
+    done = JobState(status="done", name="g", level=17)
+    state.job.set(done)
+    state.open_output.set("other")
+    assert gj.settle_finished_job(state, done) is True
+    assert state.open_output.value == "g" and state.job.value == JobState()
+
+
+def test_settle_leaves_a_newer_job_alone():
+    state = AppState()
+    done = JobState(status="done", name="g", level=17)
+    newer = JobState(status="running", name="h", level=17)
+    state.job.set(newer)
+    assert gj.settle_finished_job(state, done) is False
+    assert state.job.value is newer and state.open_output.value is None
+
+
+def test_dismiss_clears_a_finished_job_but_never_a_running_one():
+    state = AppState()
+    state.job.set(JobState(status="running", name="g", level=17))
+    assert gj.dismiss_job(state) is False and state.job.value.running
+    state.job.set(JobState(status="failed", name="g", level=17, message="boom"))
+    assert gj.dismiss_job(state) is True and state.job.value == JobState()
+
+
 def test_second_start_is_refused():
     state, notifier = AppState(), FakeNotifier()
     release = threading.Event()
     calls = []
 
-    def build(request, *, on_progress, cancel):
+    def build(request, *, on_progress, cancel, **_):
         calls.append(request.name)
         release.wait(5)
         return _result(request.name)
@@ -120,7 +202,7 @@ def test_cancel_marks_cancelled_and_shows_cancel_toast():
     state, notifier = AppState(), FakeNotifier()
     started = threading.Event()
 
-    def build(request, *, on_progress, cancel):
+    def build(request, *, on_progress, cancel, **_):
         started.set()
         cancel.wait(5)
         raise BuildCancelled()
@@ -137,12 +219,13 @@ def test_cancel_marks_cancelled_and_shows_cancel_toast():
 def test_failure_marks_failed_with_one_error_toast():
     state, notifier = AppState(), FakeNotifier()
 
-    def build(request, *, on_progress, cancel):
+    def build(request, *, on_progress, cancel, **_):
         raise EngineUnavailable("dggrid not found")
 
     gj.start_generation(state, _request(), notifier, TEXTS, build=build)
     _wait_idle(state)
-    assert state.job.value == JobState(status="failed", name="g", level=17, message="engine missing")
+    job = state.job.value
+    assert (job.status, job.name, job.level, job.message) == ("failed", "g", 17, "engine missing")
     assert notifier.toasts == [("error", "engine missing")]
     assert state.last_output.value is None
 
@@ -172,11 +255,11 @@ def test_job_texts_resolve_placeholders_lazily():
 
 def test_finished_job_does_not_clear_next_jobs_cancel_event():
     state, notifier = AppState(), FakeNotifier()
-    gj.start_generation(state, _request("a"), notifier, TEXTS, build=lambda r, *, on_progress, cancel: _result("a"))
+    gj.start_generation(state, _request("a"), notifier, TEXTS, build=lambda r, *, on_progress, cancel, **_: _result("a"))
     _wait_idle(state)
     started, release = threading.Event(), threading.Event()
 
-    def build(request, *, on_progress, cancel):
+    def build(request, *, on_progress, cancel, **_):
         started.set()
         cancel.wait(5)
         release.set()
@@ -203,13 +286,13 @@ class _RaisingCancelNotifier(FakeNotifier):
 
 def test_success_side_effect_raising_still_finishes_the_job():
     state, notifier = AppState(), _RaisingSuccessNotifier()
-    gj.start_generation(state, _request(), notifier, TEXTS, build=lambda r, *, on_progress, cancel: _result())
+    gj.start_generation(state, _request(), notifier, TEXTS, build=lambda r, *, on_progress, cancel, **_: _result())
     _wait_idle(state)
     assert state.job.value.status == "failed"
     assert state.job.value.message == "failed: toast bus gone"
     assert state.cancel_event.value is None
     assert gj.start_generation(state, _request("b"), FakeNotifier(), TEXTS,
-                               build=lambda r, *, on_progress, cancel: _result("b"))
+                               build=lambda r, *, on_progress, cancel, **_: _result("b"))
     _wait_idle(state)
     assert state.job.value.status == "done"
 
@@ -217,7 +300,7 @@ def test_success_side_effect_raising_still_finishes_the_job():
 def test_cancel_side_effect_raising_still_finishes_the_job():
     state, notifier = AppState(), _RaisingCancelNotifier()
 
-    def build(request, *, on_progress, cancel):
+    def build(request, *, on_progress, cancel, **_):
         raise BuildCancelled()
 
     gj.start_generation(state, _request(), notifier, TEXTS, build=build)

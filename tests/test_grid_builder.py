@@ -106,7 +106,7 @@ def test_concurrent_same_name_builds_stage_in_their_own_part_folders(results_roo
     class Stop(RuntimeError):
         pass
 
-    def fake_build_into(request, part, work, t0, on_progress, cancel, now):
+    def fake_build_into(request, part, work, t0, on_progress, cancel, now, on_step):
         parts.append(part)
         both_staging.wait()  # both runs are staging at the same time
         assert all(p.is_dir() for p in parts)
@@ -138,15 +138,21 @@ def test_concurrent_same_name_builds_stage_in_their_own_part_folders(results_roo
 
 @needs_engine
 def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
-    progress = []
+    progress, steps = [], []
     res = gb.build_grid(
         gb.BuildRequest(chaco_aoi, 17, "chaco17", formats=("gpkg", "shp")),
         on_progress=lambda d, t, c: progress.append((d, t, c)),
+        on_step=lambda step, fraction: steps.append((step, fraction)),
     )
     folder = results_root / "chaco17"
     assert res.folder == folder and res.n_tiles == 2
     assert res.cell_count == 330  # verified while planning (R-equivalent pipeline)
     assert progress[-1] == (2, 2, 330)
+    assert list(dict.fromkeys(s for s, _ in steps)) == ["cells", "shp", "preview", "finish"]
+    assert [f for s, f in steps if s == "cells"] == [0.0, 0.5, 1.0]
+    assert [f for s, f in steps if s in ("shp", "finish")] == [None, None]
+    preview = [f for s, f in steps if s == "preview"]
+    assert preview[0] == 0.0 and preview == sorted(preview) and preview[-1] <= 1.0
     assert sorted(p.name for p in folder.iterdir()) == sorted(
         ["chaco17.gpkg", "chaco17.shp", "chaco17.shx", "chaco17.dbf", "chaco17.prj", "chaco17.cpg",
          "metadata.json", "aoi.geojson", *PREVIEW]
@@ -276,7 +282,7 @@ def test_preview_is_built_but_not_a_deliverable(results_root, chaco_aoi, caplog)
         res = gb.build_grid(gb.BuildRequest(chaco_aoi, 18, "pv", formats=("shp",)))  # shp-only still previews
     preview = res.folder / ".preview.pmtiles"
     assert preview.read_bytes()[:7] == b"PMTiles"
-    assert res.metadata["preview"] == {"file": ".preview.pmtiles", "minzoom": 11, "maxzoom": 14}
+    assert res.metadata["preview"] == {"file": ".preview.pmtiles", "minzoom": 6, "maxzoom": 14}
     assert md.read_metadata_json(res.folder)["preview"] == res.metadata["preview"]
     assert ".preview.pmtiles" not in res.metadata["run"]["files"]
     assert preview not in res.files

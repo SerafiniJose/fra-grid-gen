@@ -1,6 +1,8 @@
 {
   "app": {
     "title": "FRA Grid Generator",
+    "about": "About",
+    "documentation": "Documentation",
     "panel_title": "Grid workflow"
   },
   "common": {
@@ -46,16 +48,12 @@
       "area": "Cell area",
       "spacing": "Spacing",
       "global": "Global cells",
-      "estimate": "Est. cells in AOI",
-      "status": "Status"
+      "estimate": "Est. cells in AOI"
     },
     "status": {
-      "fra": "FRA RSS",
-      "ok": "OK",
-      "warn": "Large",
-      "blocked": "Too large"
+      "fra": "FRA RSS"
     },
-    "caption": "Aperture-3 cells don't nest: finer cells are linked to FRA cells with fra_r17_id. The FRA correction is validated at r17 only.",
+    "caption": "Aperture-3 cells don't nest: finer cells are linked to FRA cells with fra_r17_id.",
     "name_label": "Output name",
     "name_hint": "Letters, digits, _ and - only. It is also the folder name.",
     "name_error": {
@@ -71,7 +69,6 @@
     "shp_hint": "Max 2 GB per file (~4M cells), 10-character field names, no embedded metadata.",
     "shp_disabled": "Shapefile is unavailable above 4,000,000 estimated cells.",
     "formats_empty": "Pick at least one format.",
-    "folder": "Output folder",
     "generate": "Generate grid",
     "cancel": "Cancel",
     "blocked_hint": "About {cells} cells is over the 10,000,000 limit. Use a smaller AOI or a coarser level.",
@@ -87,13 +84,7 @@
     "cancelled": "Grid generation cancelled. No files were kept.",
     "failed": "Grid generation failed: {error}",
     "engine_missing": "DGGRID binary not found: reinstall the module environment.",
-    "disk_full": "Not enough disk space to write {name}.",
-    "result_title": "Grid ready",
-    "result_summary": "{cells} cells in {seconds} s",
-    "show_on_map": "Show on map",
-    "preview_too_large": "Map preview is limited to 50,000 cells for grids without a preview file.",
-    "view_metadata": "View metadata",
-    "unvalidated": "correction unvalidated"
+    "disk_full": "Not enough disk space to write {name}."
   },
   "outputs": {
     "title": "Generated grids",
@@ -106,7 +97,33 @@
     "delete_message": "The folder {name} and all its files ({size}) will be deleted. This cannot be undone.",
     "deleted": "Deleted {name}.",
     "delete_failed": "Could not delete {name}: {error}",
-    "busy": "This grid is being generated."
+    "busy": "This grid is being generated.",
+    "aoi": "AOI",
+    "run": "Run",
+    "preview": "Map preview",
+    "points": "{n} points",
+    "tiles": "{n} tiles",
+    "total": "{size} total",
+    "preview_pmtiles": "PMTiles · zoom {min}–{max}",
+    "preview_geojson": "Drawn cell by cell (no preview file)",
+    "preview_none": "Not available (no preview file, over 50,000 cells)",
+    "job": {
+      "steps": {
+        "cells": "Generating cells",
+        "shp": "Converting to Shapefile",
+        "preview": "Building map preview (PMTiles)",
+        "finish": "Writing files and metadata"
+      },
+      "preview_feed": "Sending cells to tippecanoe · {pct}%",
+      "preview_tiles": "tippecanoe is cutting vector tiles · {pct}%",
+      "preview_about": "A hidden PMTiles file of vector tiles that lets the map draw the grid at any size. It is not one of the output files.",
+      "elapsed": "Elapsed {time}",
+      "remaining": "about {time} left",
+      "estimating": "estimating time left…",
+      "dismiss": "Dismiss",
+      "ready": "Ready",
+      "finished": "Finished in {time}"
+    }
   },
   "metadata": {
     "title": "Metadata · {name}",

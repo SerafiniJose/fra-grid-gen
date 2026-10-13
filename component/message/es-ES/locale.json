@@ -1,6 +1,8 @@
 {
   "app": {
     "title": "Generador de grillas FRA",
+    "about": "Acerca de",
+    "documentation": "Documentación",
     "panel_title": "Flujo de la grilla"
   },
   "common": {
@@ -46,16 +48,12 @@
       "area": "Área de celda",
       "spacing": "Espaciado",
       "global": "Celdas globales",
-      "estimate": "Celdas est. en la zona",
-      "status": "Estado"
+      "estimate": "Celdas est. en la zona"
     },
     "status": {
-      "fra": "FRA RSS",
-      "ok": "OK",
-      "warn": "Grande",
-      "blocked": "Demasiado grande"
+      "fra": "FRA RSS"
     },
-    "caption": "Las celdas de apertura 3 no se anidan: las celdas más finas se vinculan a las celdas FRA con fra_r17_id. La corrección FRA está validada solo en r17.",
+    "caption": "Las celdas de apertura 3 no se anidan: las celdas más finas se vinculan a las celdas FRA con fra_r17_id.",
     "name_label": "Nombre de salida",
     "name_hint": "Solo letras, dígitos, _ y -. También es el nombre de la carpeta.",
     "name_error": {
@@ -71,7 +69,6 @@
     "shp_hint": "Máx. 2 GB por archivo (~4M celdas), nombres de campo de 10 caracteres, sin metadatos incrustados.",
     "shp_disabled": "El shapefile no está disponible por encima de 4.000.000 de celdas estimadas.",
     "formats_empty": "Elija al menos un formato.",
-    "folder": "Carpeta de salida",
     "generate": "Generar grilla",
     "cancel": "Cancelar",
     "blocked_hint": "Unas {cells} celdas superan el límite de 10.000.000. Use una zona más pequeña o un nivel más grueso.",
@@ -87,13 +84,7 @@
     "cancelled": "Generación cancelada. No se guardó ningún archivo.",
     "failed": "La generación falló: {error}",
     "engine_missing": "No se encontró el binario DGGRID: reinstale el entorno del módulo.",
-    "disk_full": "No hay espacio en disco suficiente para escribir {name}.",
-    "result_title": "Grilla lista",
-    "result_summary": "{cells} celdas en {seconds} s",
-    "show_on_map": "Ver en el mapa",
-    "preview_too_large": "La vista en el mapa se limita a 50.000 celdas para las grillas sin archivo de vista previa.",
-    "view_metadata": "Ver metadatos",
-    "unvalidated": "corrección no validada"
+    "disk_full": "No hay espacio en disco suficiente para escribir {name}."
   },
   "outputs": {
     "title": "Grillas generadas",
@@ -106,7 +97,33 @@
     "delete_message": "Se eliminará la carpeta {name} con todos sus archivos ({size}). No se puede deshacer.",
     "deleted": "Se eliminó {name}.",
     "delete_failed": "No se pudo eliminar {name}: {error}",
-    "busy": "Esta grilla se está generando."
+    "busy": "Esta grilla se está generando.",
+    "aoi": "Zona",
+    "run": "Ejecución",
+    "preview": "Vista en el mapa",
+    "points": "{n} puntos",
+    "tiles": "{n} bloques",
+    "total": "{size} en total",
+    "preview_pmtiles": "PMTiles · zoom {min}–{max}",
+    "preview_geojson": "Se dibuja celda por celda (sin archivo de vista previa)",
+    "preview_none": "No disponible (sin archivo de vista previa, más de 50.000 celdas)",
+    "job": {
+      "steps": {
+        "cells": "Generando celdas",
+        "shp": "Convirtiendo a Shapefile",
+        "preview": "Creando la vista previa del mapa (PMTiles)",
+        "finish": "Escribiendo archivos y metadatos"
+      },
+      "preview_feed": "Enviando celdas a tippecanoe · {pct}%",
+      "preview_tiles": "tippecanoe está creando teselas vectoriales · {pct}%",
+      "preview_about": "Un archivo PMTiles oculto de teselas vectoriales que permite al mapa dibujar la grilla a cualquier tamaño. No es uno de los archivos de salida.",
+      "elapsed": "Transcurrido {time}",
+      "remaining": "quedan unos {time}",
+      "estimating": "estimando el tiempo restante…",
+      "dismiss": "Cerrar",
+      "ready": "Lista",
+      "finished": "Terminada en {time}"
+    }
   },
   "metadata": {
     "title": "Metadatos · {name}",

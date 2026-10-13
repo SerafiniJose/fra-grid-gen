@@ -62,6 +62,18 @@ def test_levels_table_click_selects_only_selectable_rows():
         rc.close()
 
 
+def test_levels_table_has_no_status_column():
+    ests = estimate_levels(52_410.0, {lvl: 1_000.0 for lvl in range(17, 22)}, None)
+    box, rc = reacton.render(lt.LevelsTable(ests, 17, lambda _: None), handle_error=False)
+    try:
+        headers = [w.children[0] for w in rc.find(v.Html, tag="th").widgets]
+        assert headers == ["Level", "Cell area", "Spacing", "Global cells", "Est. cells in AOI"]
+        assert all(len(w.children) == 5 for w in rc.find(v.Html, tag="tr").widgets if w.style_)
+        assert [w.children for w in rc.find(v.Chip).widgets] == [["FRA RSS"]]
+    finally:
+        rc.close()
+
+
 def test_metadata_sections_flatten_the_record():
     sections = dict(mdd.metadata_sections(RECORD))
     assert ("Type", "ISEA3H") in sections["metadata.dggs"]

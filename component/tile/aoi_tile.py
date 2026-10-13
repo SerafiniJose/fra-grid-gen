@@ -49,7 +49,7 @@ def _row(label, value):
 
 
 @solara.component
-def AoiSummary(info, on_continue):
+def AoiSummary(info):
     r17 = estimate_cells(g.FRA_LEVEL, info.area_km2, info.perimeter_km[g.FRA_LEVEL], info.n_points)
     w, s, e, n = info.bbox
     with rv.Card(outlined=True):
@@ -65,8 +65,15 @@ def AoiSummary(info, on_continue):
                         _row(t("aoi.area"), f"{info.area_km2:,.1f} km²")
                     _row(t("aoi.bbox"), f"{w:.4f}, {s:.4f} → {e:.4f}, {n:.4f}")
                     _row(t("aoi.estimate_r17"), f"{r17:,}")
-        with rv.CardActions(style_="justify-content: flex-end;"):
-            solara.Button(t("aoi.continue"), on_click=on_continue, color="primary", small=True)
+
+
+@solara.component
+def AoiReady(info, on_continue):
+    """The AOI summary card, then the step to the Grid tab below it."""
+    with solara.Column(style="gap: 12px;"):
+        AoiSummary(info=info)
+        with solara.Row(justify="end"):
+            solara.Button(t("aoi.continue"), on_click=on_continue, color="primary")
 
 
 @solara.component
@@ -95,4 +102,4 @@ def AoiTile(state, map_):
             key, detail = state.aoi_error.value
             solara.Error(t(f"aoi.error.{key}", error=detail or ""))
         elif state.aoi_info.value is not None:
-            AoiSummary(info=state.aoi_info.value, on_continue=lambda: state.active_tab.set(1))
+            AoiReady(info=state.aoi_info.value, on_continue=lambda: state.active_tab.set(1))

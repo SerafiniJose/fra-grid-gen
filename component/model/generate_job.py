@@ -14,6 +14,7 @@ handler (``t()`` must not run on a worker); the worker only fills templates.
 import errno
 import logging
 import threading
+import time
 from dataclasses import dataclass, replace
 
 from component.i18n import t
@@ -27,6 +28,7 @@ from component.scripts.solara_threads import spawn_in_context
 
 logger = logging.getLogger(LOGGER_NAME)
 _START_LOCK = threading.Lock()
+_clock = time.monotonic
 
 
 @dataclass(frozen=True)
@@ -76,7 +78,10 @@ def start_generation(state, request, notifier, texts: JobTexts, *, build=build_g
             return False
         cancel = threading.Event()
         state.cancel_event.set(cancel)
-        state.job.set(JobState(status="running", name=request.name, level=request.level))
+        now = _clock()
+        state.job.set(JobState(status="running", name=request.name, level=request.level, title=texts.title,
+                               formats=tuple(request.formats), started_at=now, step="cells", step_fraction=0.0,
+                               step_started_at=now))
     try:
         spawn_in_context(_run, (state, request, notifier, texts, cancel, build))
     except Exception as exc:  # no worker: undo the start so Generate stays usable
@@ -84,6 +89,39 @@ def start_generation(state, request, notifier, texts: JobTexts, *, build=build_g
         _finish_failed(state, cancel, format_error(exc, texts))
         return False
     return True
+
+
+def dismiss_job(state) -> bool:
+    """Forget a finished job (its failed/cancelled card); a running one stays."""
+    if state.job.value.running:
+        return False
+    state.job.set(JobState())
+    return True
+
+
+def settle_finished_job(state, job) -> bool:
+    """After the "Ready" moment: open the new grid's card and drop the job card.
+
+    Only for ``job`` itself: a job started since then is left alone.
+    """
+    if state.job.value is not job or job.status != "done":
+        return False
+    state.open_output.set(job.name)
+    state.job.set(JobState())
+    return True
+
+
+def _whole_pct(fraction):
+    return None if fraction is None else int(fraction * 100)
+
+
+def publish_step(state, step: str, fraction) -> None:
+    """Record the builder's current step; within a step only whole-percent changes re-render."""
+    job = state.job.value
+    if step != job.step:
+        state.job.set(replace(job, step=step, step_fraction=fraction, step_started_at=_clock()))
+    elif _whole_pct(fraction) != _whole_pct(job.step_fraction):
+        state.job.set(replace(job, step_fraction=fraction))
 
 
 def cancel_generation(state) -> bool:
@@ -129,7 +167,8 @@ def _execute(state, request, notifier, texts, cancel, build):
                 report(done, total, cells)
                 state.job.set(replace(state.job.value, done=done, total=total, cells=cells))
 
-            result = build(request, on_progress=on_progress, cancel=cancel)
+            result = build(request, on_progress=on_progress, cancel=cancel,
+                           on_step=lambda step, fraction: publish_step(state, step, fraction))
     except BuildCancelled:
         notifier.cancel(texts.cancelled)
         state.cancel_event.set(None)
@@ -148,4 +187,5 @@ def _execute(state, request, notifier, texts, cancel, build):
         state.last_output.set(result)
         state.outputs_signal.set(state.outputs_signal.value + 1)
         state.cancel_event.set(None)
-        state.job.set(replace(state.job.value, status="done", cells=result.cell_count, message=message))
+        state.job.set(replace(state.job.value, status="done", cells=result.cell_count, message=message,
+                              finished_at=_clock()))

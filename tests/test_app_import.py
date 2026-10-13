@@ -30,12 +30,11 @@ def test_grid_tab_disabled_until_aoi_exists(results_root):
     assert app.grid_tab_disabled(state) is False
 
 
-def test_grid_tab_stays_enabled_while_a_job_runs(results_root):
+def test_grid_tab_needs_an_aoi_even_while_a_job_runs(results_root):
+    # Cancel and the progress live on the Outputs tab, so the Grid tab need not stay open.
     from component.model.state_manager import AppState, JobState
 
     app = importlib.import_module("app")
     state = AppState()
     state.job.set(JobState(status="running", name="g", level=17))
-    assert app.grid_tab_disabled(state) is False
-    state.job.set(JobState(status="done", name="g", level=17))
     assert app.grid_tab_disabled(state) is True

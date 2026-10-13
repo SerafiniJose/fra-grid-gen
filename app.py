@@ -29,6 +29,7 @@ from component.scripts.tile_proxy import borrow_localtileserver_prefix, loopback
 from component.tile.aoi_tile import AoiTile
 from component.tile.grid_tile import GridTile
 from component.tile.outputs_tile import OutputsTile
+from component.widget.doc_page import DocPage
 
 logger = setup_logging(logger_name=g.LOGGER_NAME)
 # Tile milestones -> notification pill; also lifts the logger to INFO when
@@ -79,10 +80,10 @@ def on_kernel_start():
 def grid_tab_disabled(state) -> bool:
     """The Grid tab needs an AOI to estimate and generate for.
 
-    It stays open while a job runs, even when the AOI is cleared or being
-    re-resolved, so Cancel and the progress stay reachable.
+    A running job does not keep it open: its progress and Cancel are on the
+    Outputs tab.
     """
-    return state.aoi_info.value is None and not state.job.value.running
+    return state.aoi_info.value is None
 
 
 @solara.component
@@ -91,8 +92,7 @@ def WorkflowTabs(map_):
     grid_disabled = grid_tab_disabled(app_state)
 
     # AOI cleared while on the Grid tab: fall back to the AOI tab (in an
-    # effect, never during render). Never while a job runs: grid_disabled is
-    # False then.
+    # effect, never during render).
     def back_to_aoi():
         if grid_disabled and app_state.active_tab.value == 1:
             app_state.active_tab.set(0)
@@ -171,10 +171,31 @@ def Page():
     # when no provider exists yet.
     NotificationProvider()
 
+    # Left drawer: About and Documentation open as dialogs over the map.
+    steps_data = [
+        {
+            "id": 1,
+            "name": t("app.about"),
+            "icon": "mdi-information-outline",
+            "display": "dialog",
+            "content": DocPage(page="about"),
+            "width": 860,
+        },
+        {
+            "id": 2,
+            "name": t("app.documentation"),
+            "icon": "mdi-book-open-page-variant-outline",
+            "display": "dialog",
+            "content": DocPage(page="documentation"),
+            "width": 860,
+        },
+    ]
+
     MapApp.element(
         app_title=t("app.title"),
         app_icon="mdi-hexagon-multiple",
         main_map=[sepal_map],
+        steps_data=steps_data,
         theme_state=theme_state,
         locales=app_available_locales(),
         right_panel_config={

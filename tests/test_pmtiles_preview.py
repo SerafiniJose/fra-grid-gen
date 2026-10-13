@@ -103,3 +103,13 @@ def test_tippecanoe_failure_raises_preview_failed(tmp_path):
     with pytest.raises(pp.PreviewFailed):
         pp.build_preview(_gpkg(tmp_path / "g.gpkg"), "g", tmp_path / "x.pmtiles", minzoom=13, maxzoom=10,
                          tmp_dir=tmp_path)
+
+
+@needs_tippecanoe
+def test_on_progress_reports_rising_percent_without_repeats(tmp_path):
+    seen = []
+    pp.build_preview(_gpkg(tmp_path / "g.gpkg", n=2000), "g", tmp_path / "p.pmtiles", minzoom=10, maxzoom=13,
+                     tmp_dir=tmp_path, chunk=200, on_progress=seen.append)
+    assert seen and seen == sorted(seen) and len(seen) == len(set(seen))
+    assert 50.0 in seen  # feeding (first half) completes before tippecanoe's own progress
+    assert all(0 < p <= 100 for p in seen)

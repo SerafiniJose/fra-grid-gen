@@ -1,11 +1,9 @@
-"""Levels table: global stats per level plus the AOI estimate and its verdict."""
+"""Levels table: global stats per level plus the AOI estimate; blocked levels are dimmed."""
 
 import reacton.ipyvuetify as rv
 import solara
 
 from component.i18n import t
-
-_VERDICT_COLOR = {"ok": "success", "warn": "warning", "blocked": "error"}
 
 
 def compact(n: int) -> str:
@@ -60,10 +58,6 @@ def _LevelRow(row: dict, is_selected: bool, on_select):
             rv.Html(tag="td", children=[row["spacing"]]),
             rv.Html(tag="td", children=[row["global_cells"]]),
             rv.Html(tag="td", children=[row["estimate"]]),
-            rv.Html(tag="td", children=[
-                rv.Chip(x_small=True, outlined=True, color=_VERDICT_COLOR[row["verdict"]],
-                        children=[t(f"grid.status.{row['verdict']}")])
-            ]),
         ],
     )
     rv.use_event(tr, "click", lambda *_: on_select(row["level"]) if row["selectable"] else None)
@@ -75,7 +69,7 @@ def LevelsTable(estimates, selected: int, on_select):
     with rv.SimpleTable(dense=True):
         with rv.Html(tag="thead"):
             with rv.Html(tag="tr"):
-                for key in ("level", "area", "spacing", "global", "estimate", "status"):
+                for key in ("level", "area", "spacing", "global", "estimate"):
                     rv.Html(tag="th", children=[t(f"grid.col.{key}")])
         with rv.Html(tag="tbody"):
             for row in rows:

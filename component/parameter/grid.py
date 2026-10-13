@@ -20,9 +20,13 @@ PREVIEW_MAX_CELLS = 50_000
 # PMTiles map preview built with every grid (hidden; not a deliverable).
 PREVIEW_FILE = ".preview.pmtiles"
 PREVIEW_LAYER = "cells"  # tippecanoe -l name = MapLibre source-layer
-# Web-map zoom range per level: hexagons are >= ~3.5 px wide at the equator from
-# the min zoom on; nothing is drawn below it, the browser overzooms past the max.
-PREVIEW_ZOOMS = {17: (10, 13), 18: (11, 14), 19: (12, 15), 20: (12, 15), 21: (13, 16)}
+# Web-map zoom range per level. Every level starts at zoom 6 (country scale):
+# where a cell is under a pixel, tippecanoe merges cells into stand-in squares
+# (r21 shows real hexagons from z9, r17 from z6). Nothing is drawn below the min
+# zoom; past the max the browser overzooms.
+PREVIEW_MIN_ZOOM = 6
+PREVIEW_ZOOMS = {17: (PREVIEW_MIN_ZOOM, 13), 18: (PREVIEW_MIN_ZOOM, 14), 19: (PREVIEW_MIN_ZOOM, 15),
+                 20: (PREVIEW_MIN_ZOOM, 15), 21: (PREVIEW_MIN_ZOOM, 16)}
 
 # Tile edge (degrees, WGS84) per level: keeps one dggrid call at <= ~200k cells.
 TILE_DEG = {17: 1.0, 18: 1.0, 19: 0.5, 20: 0.5, 21: 0.25}

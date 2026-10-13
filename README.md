@@ -13,10 +13,14 @@ correction from `reference/FRA RSS_ISEA3H generation 20sep26.R`, in Python.
   `metadata.json`'s `run.files` nor in the file lists, and it goes with the folder. `metadata.json` records it as
   `"preview": {"file": ".preview.pmtiles", "minzoom": m, "maxzoom": M}`, or `null` when it was skipped
   (tippecanoe missing or failing only skips the preview, with a warning; the grid is kept). Zoom ranges:
-  r17 10–13, r18 11–14, r19 12–15, r20 12–15, r21 13–16; below the min zoom the map shows only the AOI
-  outline and a "Zoom in to see the cells" hint, past the max the browser overzooms. Cost: about 90 bytes
-  and 20 µs per cell (2.4 s and 9.6 MB for 115k r17 cells, 20 s and 85 MB for 1.04M). Grids without a preview (older folders) are
-  drawn cell by cell, up to 50,000 cells.
+  every level from zoom 6, up to r17 13, r18 14, r19 15, r20 15, r21 16. Where a cell is under a pixel,
+  tippecanoe merges cells into small stand-in squares, so a fine grid reads as its footprint until the
+  hexagons appear (r21 from z9, r17 from z6). Below zoom 6 the map shows only the AOI outline and a "Zoom in
+  to see the cells" hint, past the max the browser overzooms. Cost: about 130 bytes and 30 µs per cell
+  (7 s and 30 MB for 225k r17 cells, 21 s and 85 MB for 651k). The z6 tile carries every cell under it
+  (6.8 MB for 651k r17 cells), so very large grids are slow to draw at that zoom. Grids without a preview
+  (older folders) are drawn cell by cell, up to 50,000 cells. Grids built before the zoom 6 change keep their
+  old min zoom until regenerated.
 - Limits: a warning at 2,000,000 estimated cells, a block above 10,000,000. The Shapefile option is
   unavailable above 4,000,000 cells (2 GB per file, 10-character field names, no embedded metadata).
 
@@ -25,6 +29,10 @@ correction from `reference/FRA RSS_ISEA3H generation 20sep26.R`, in Python.
 - Antimeridian: an AOI that crosses 180° is refused; split it at 180° and generate each part.
   The column of cells straddling ±180° belongs to the part that ends at +180° (the R script's
   unwrap moves those cells to +180°), so a part touching −180° generated alone lacks that column.
+
+- In-app help: the left drawer's About and Documentation open Markdown pages from
+  `component/doc/<locale>/` (`about.md`, `documentation.md`). Keep the level table and the correction
+  constants there in sync with `component/parameter/grid.py` (`tests/test_docs.py` checks the cell counts).
 
 ## Run
 
@@ -68,7 +76,11 @@ unzip -j hexagonos_19_03.zip 'output/isea3hr17_528.*' -d reference_data/output/
 1. Chaco box (−60.10, −22.40, −60.00, −22.30), r17, GeoPackage + Shapefile: 330 cells, two tiles, both formats in the folder.
 2. The same box at r19: the warning-free run finishes, and `fra_r17_id` is filled in.
 3. An ADMIN2 unit at r17: the summary card appears in a few seconds, and the pill shows tile milestones.
-4. Cancel a multi-tile run: you get a cancel toast and no folder is left behind.
+4. Generate a multi-tile run: the app switches to the Outputs tab, whose job card shows each step (cells,
+   Shapefile, PMTiles map preview, files), the elapsed time and the time left. When it finishes the card
+   says "Ready" for 2 s, then the new grid's card opens in the list (one card open at a time; a click on a
+   card's header opens or closes it, the eye shows it on the map without opening it). Cancel another run:
+   you get a cancel toast, the card keeps the reason until Dismiss, and no folder is left behind.
 5. Delete a grid shown on the map: its layer disappears and the folder is gone.
 6. Show a grid of 1M+ cells on the map: the outlines appear from its min zoom, the AOI outline and the
    zoom hint below it, and tiles load through the proxy (no `blob:` URLs in the network tab).

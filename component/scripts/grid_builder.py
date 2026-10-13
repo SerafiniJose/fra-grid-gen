@@ -1,9 +1,11 @@
 """Generate one FRA grid: tiles -> DGGRID -> FRA correction -> filter -> files.
 
 Solara-free. Progress goes out as INFO lines on the ``fra_grid`` logger (task
-milestones through notify_bridge) and through ``on_progress(done, total,
-cells)``. ``cancel.is_set()`` is checked between tiles; a dggrid call already
-running finishes first.
+milestones through notify_bridge), through ``on_progress(done, total,
+cells)`` and through ``on_step(step, fraction)`` (``job_progress.STEPS``;
+fraction 0..1, or None for a step that cannot measure itself).
+``cancel.is_set()`` is checked between tiles; a dggrid call already running
+finishes first.
 
 Tiling: WGS84 tiles aligned to multiples of ``TILE_DEG[level]``. A tile owns
 the cells whose corrected centroid falls in its half-open box, so a cell
@@ -191,19 +193,25 @@ def _validate(request: BuildRequest, root: Path) -> None:
         raise FileExistsError(str(root / request.name))
 
 
+def _no_step(step, fraction) -> None:
+    pass
+
+
 def _check(cancel) -> None:
     if cancel is not None and cancel.is_set():
         raise BuildCancelled()
 
 
-def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, cancel):
+def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, cancel, on_step):
     """Build ``part/g.PREVIEW_FILE``; its metadata entry, or None when skipped."""
     minzoom, maxzoom = g.PREVIEW_ZOOMS[level]
     target = part / g.PREVIEW_FILE
     logger.info("Building map preview")
+    on_step("preview", 0.0)
     try:
         built = pp.build_preview(gpkg_tmp, name, work / g.PREVIEW_FILE, minzoom=minzoom, maxzoom=maxzoom,
-                                 tmp_dir=work, cancel=cancel)
+                                 tmp_dir=work, cancel=cancel,
+                                 on_progress=lambda pct: on_step("preview", min(pct / 100.0, 1.0)))
         size = built.stat().st_size
         shutil.move(str(built), str(target))
     except pp.PreviewCancelled:
@@ -216,8 +224,9 @@ def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, canc
     return {"file": g.PREVIEW_FILE, "minzoom": minzoom, "maxzoom": maxzoom}
 
 
-def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel, now):
+def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel, now, on_step):
     aoi, level, name = request.aoi, request.level, request.name
+    on_step("cells", 0.0)
     logger.info("Preparing AOI")
     buf = clip_buffer_deg(level, max(abs(aoi.bbox[1]), abs(aoi.bbox[3])))
     region = search_region(aoi, level, buf)
@@ -236,6 +245,7 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
         logger.info("Tile %d/%d: %s cells", i, len(tiles), f"{total:,}")
         if on_progress is not None:
             on_progress(i, len(tiles), total)
+        on_step("cells", i / len(tiles))
     _check(cancel)
     if total == 0:
         raise EmptyGridError("No cells were generated: check the AOI.")
@@ -245,12 +255,14 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
     if keep_gpkg:
         files.append(f"{name}.gpkg")
     if "shp" in request.formats:
+        on_step("shp", None)
         logger.info("Converting to Shapefile")
         files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{name}.shp", name)]
     write_aoi_geojson(aoi.geometry, part / md.AOI_FILE)
     files += [md.AOI_FILE, md.METADATA_FILE]
-    preview = _build_preview(gpkg_tmp, name, level, part, work, cancel)
+    preview = _build_preview(gpkg_tmp, name, level, part, work, cancel, on_step)
     _check(cancel)
+    on_step("finish", None)
 
     logger.info("Writing metadata")
     record = md.build_record(
@@ -266,15 +278,18 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
     return record, files, len(tiles), total
 
 
-def build_grid(request: BuildRequest, *, results_root=None, on_progress=None, cancel=None, now=None) -> BuildResult:
+def build_grid(request: BuildRequest, *, results_root=None, on_progress=None, on_step=None, cancel=None,
+               now=None) -> BuildResult:
     t0 = time.monotonic()
+    if on_step is None:
+        on_step = _no_step
     root = Path(results_root) if results_root is not None else results_dir()
     _validate(request, root)
     part = oi.new_part_folder(root, request.name)  # this run's own: never shared with another session
     work = None
     try:
         work = Path(tempfile.mkdtemp(prefix=f"{request.name}-", dir=local_scratch_dir()))
-        record, files, n_tiles, total = _build_into(request, part, work, t0, on_progress, cancel, now)
+        record, files, n_tiles, total = _build_into(request, part, work, t0, on_progress, cancel, now, on_step)
         _check(cancel)
         folder = oi.commit_part(root, request.name, part, overwrite=request.overwrite)
     except BaseException:
