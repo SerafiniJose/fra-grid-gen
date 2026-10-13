@@ -2,7 +2,8 @@
 
 SEPAL module that generates FRA ISEA3H hexagon grids (FRA RSS level r17 and the
 finer r18–r21) for an area of interest, with the FRA sphere→WGS84 latitude
-correction from `reference/FRA RSS_ISEA3H generation 20sep26.R`, in Python.
+correction ported to Python from the FRA RSS R script (`FRA RSS_ISEA3H generation 20sep26.R`,
+dggridR), which is not part of this repository.
 
 - One level per run. Cells finer than r17 carry `fra_r17_id`, the FRA cell that contains their centre.
 - Outputs go to `~/module_results/fra_grid_generator/<name>/`. Each folder holds
@@ -65,7 +66,8 @@ micromamba run -n fra-grid pytest -q
 ```
 
 Golden tests (`-m golden`) compare against the original R/dggridR r17 cells and need
-`reference_data/output/isea3hr17_528.*`:
+`reference_data/output/isea3hr17_528.*`, taken from the FRA reference archive
+`hexagonos_19_03.zip` (not in this repository). Without it they are skipped:
 
 ```bash
 unzip -j hexagonos_19_03.zip 'output/isea3hr17_528.*' -d reference_data/output/
