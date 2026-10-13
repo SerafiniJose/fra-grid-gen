@@ -140,6 +140,9 @@ def WorkflowTabs(map_):
             OutputsTile(state=app_state, map_=map_)
 
 
+REPO_URL = "https://github.com/SerafiniJose/fra-grid-gen"
+
+
 @solara.component
 @with_sepal_sessions(module_name="fra_grid_generator")
 def Page():
@@ -198,6 +201,8 @@ def Page():
         steps_data=steps_data,
         theme_state=theme_state,
         locales=app_available_locales(),
+        repo_url=REPO_URL,
+        docs_url=f"{REPO_URL}/blob/main/component/doc/en/documentation.md",
         right_panel_config={
             "title": t("app.panel_title"),
             "icon": "mdi-hexagon-multiple-outline",
