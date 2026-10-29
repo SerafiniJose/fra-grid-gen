@@ -74,7 +74,7 @@ def _user() -> str:
 
 def build_record(
     *, name, aoi, level, formats, files, cell_count, n_tiles, tile_deg, clip_buffer_deg,
-    duration_s, versions, generated_at=None, preview=None,
+    duration_s, versions, generated_at=None, preview=None, plots_layer=None,
 ) -> dict:
     when = (generated_at or datetime.now(timezone.utc)).astimezone(timezone.utc)
     fields = {k: v for k, v in FIELD_DOCS.items() if k != "fra_r17_id" or level > g.FRA_LEVEL}
@@ -122,6 +122,8 @@ def build_record(
         # was skipped. Not a deliverable: never listed in run.files.
         "preview": preview,
         "fields": fields,
+        # 1 ha centre plots ({layer, side_m}), a second GPKG layer / Shapefile, or None.
+        "plots": {"layer": plots_layer, "side_m": g.PLOT_SIDE_M} if plots_layer else None,
     }
 
 

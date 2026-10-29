@@ -174,6 +174,30 @@ def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
     assert md.read_gpkg_metadata(folder / "chaco17.gpkg", "chaco17") == record
     shp = pyogrio.read_dataframe(folder / "chaco17.shp")
     assert len(shp) == 330
+    assert record["plots"] is None
+
+
+@needs_engine
+def test_plots_layer_holds_one_ha_square_per_cell(results_root, chaco_aoi):
+    res = gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "c17", formats=("gpkg", "shp"), plots=True))
+    cells = pyogrio.read_dataframe(res.folder / "c17.gpkg", layer="c17")
+    plots = pyogrio.read_dataframe(res.folder / "c17.gpkg", layer="c17_plots")
+    assert list(plots["global_id"]) == list(cells["global_id"]) and "area_ha" not in plots
+    assert shapely.contains(cells.geometry.values, plots.geometry.values).all()
+    assert np.allclose(gb._geodesic_area_ha(plots.geometry.values), 1.0, atol=0.001)
+    assert len(pyogrio.read_dataframe(res.folder / "c17_plots.shp")) == 330
+    assert md.read_metadata_json(res.folder)["plots"] == {"layer": "c17_plots", "side_m": 100.0}
+
+
+def test_plot_squares_are_one_ha_and_cross_the_antimeridian():
+    squares = gb.plot_squares([0.0, 179.9999, -60.0], [0.0, 70.0, -22.3])
+    assert np.allclose(gb._geodesic_area_ha(squares), 1.0, atol=0.001)
+    assert shapely.bounds(squares[1])[2] > 180.0  # one square, not one spanning the globe
+
+
+def test_plots_rejected_on_levels_too_fine(results_root, chaco_aoi):
+    with pytest.raises(ValueError, match="1 ha plots"):
+        gb.build_grid(gb.BuildRequest(chaco_aoi, 20, "fine", plots=True))
 
 
 @needs_engine

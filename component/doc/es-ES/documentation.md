@@ -50,6 +50,7 @@ Cada grilla tiene su propia carpeta en `~/module_results/fra_grid_generator/<nom
 |---|---|
 | `<nombre>.gpkg` | Las celdas (GeoPackage). También incluye los metadatos. |
 | `<nombre>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | Las celdas (Shapefile), si lo elegiste. |
+| `<nombre>_plots` | Opcional, r17 a r19: un cuadrado de 1 ha (100 m × 100 m, orientado al norte) en el centro de cada celda, con los campos de la celda salvo `area_ha`. Una segunda capa en el GeoPackage y, con Shapefile, `<nombre>_plots.shp`. |
 | `metadata.json` | Cómo y cuándo se generó la grilla: versiones de la app y de DGGRID, parámetros de la grilla, corrección, AOI, archivos. |
 | `aoi.geojson` | La zona de interés utilizada. |
 

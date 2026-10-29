@@ -13,6 +13,13 @@ LEVELS = tuple(range(MIN_LEVEL, MAX_LEVEL + 1))
 WARN_CELLS = 2_000_000
 BLOCK_CELLS = 10_000_000
 SHP_MAX_CELLS = 4_000_000
+# Optional 1 ha square plot at each cell centre (FRA RSS interpretation plot):
+# north-up, 100 m sides on the WGS84 ellipsoid, written to the layer/file
+# "<name>_plots". Only levels whose hexagon holds the square: inradius >= the
+# square's half-diagonal (70.7 m); r20 (65 m) and r21 are too small.
+PLOT_SIDE_M = 100.0
+PLOT_LEVELS = (17, 18, 19)
+PLOTS_SUFFIX = "_plots"
 # GeoJSON map preview cap: grids without a PMTiles preview (older folders,
 # tippecanoe missing at build time) are drawn cell by cell in the browser.
 PREVIEW_MAX_CELLS = 50_000

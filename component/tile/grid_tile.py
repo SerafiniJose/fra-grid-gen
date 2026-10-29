@@ -142,13 +142,15 @@ def GridTile(state, map_):
     name_error = validate_grid_name(name)
     name_state = name_status(root, name) if name_error is None else "free"
     formats = effective_formats(state.formats.value, est.shp_allowed)
+    plots_allowed = level in g.PLOT_LEVELS
+    plots = state.plots.value and plots_allowed
     job = state.job.value
     reason = block_reason(running=job.running, name_error=name_error, name_state=name_state,
                           formats=formats, verdict=est.verdict, engine_ok=engine_ok)
 
     def launch():
         request = BuildRequest(aoi=info, level=level, name=name, formats=formats,
-                               overwrite=name_state == "grid")
+                               overwrite=name_state == "grid", plots=plots)
         if start_generation(state, request, notifier, job_texts(level, info.label, name)):
             state.active_tab.set(2)  # Outputs: the job's card shows its progress
 
@@ -194,6 +196,11 @@ def GridTile(state, map_):
                         on_value=lambda on: toggle_format("shp", on),
                         disabled=job.running or not est.shp_allowed)
         solara.Text(t("grid.shp_hint") if est.shp_allowed else t("grid.shp_disabled"),
+                    style="font-size: 0.8rem; opacity: 0.7;")
+
+        solara.Checkbox(label=t("grid.plots"), value=plots, on_value=state.plots.set,
+                        disabled=job.running or not plots_allowed)
+        solara.Text(t("grid.plots_hint") if plots_allowed else t("grid.plots_disabled"),
                     style="font-size: 0.8rem; opacity: 0.7;")
 
         if reason == "grid.blocked_hint":

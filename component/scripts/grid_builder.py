@@ -66,6 +66,7 @@ class BuildRequest:
     name: str
     formats: tuple = ("gpkg",)
     overwrite: bool = False
+    plots: bool = False
 
 
 @dataclass(frozen=True)
@@ -142,6 +143,23 @@ def _geodesic_area_ha(geoms) -> np.ndarray:
     return np.round(area / 1e4, 3)
 
 
+def plot_squares(lon, lat) -> np.ndarray:
+    """North-up squares of g.PLOT_SIDE_M sides on the WGS84 ellipsoid, centred on lon/lat."""
+    lon, lat = np.asarray(lon, dtype="float64"), np.asarray(lat, dtype="float64")
+    half = np.full(lon.shape, g.PLOT_SIDE_M / 2.0)
+    _, north, _ = _GEOD.fwd(lon, lat, np.zeros_like(half), half)
+    _, south, _ = _GEOD.fwd(lon, lat, np.full_like(half, 180.0), half)
+    east, _, _ = _GEOD.fwd(lon, lat, np.full_like(half, 90.0), half)
+    dlon = (east - lon + 180.0) % 360.0 - 180.0  # fwd wraps east past +-180
+    return shapely.box(lon - dlon, south, lon + dlon, north)
+
+
+def plot_frame(cells: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """The cells' attributes (no area_ha) with their 1 ha centre plot as geometry."""
+    squares = plot_squares(cells["lon"].to_numpy(), cells["lat"].to_numpy())
+    return gpd.GeoDataFrame(cells.drop(columns=["area_ha", "geometry"]), geometry=squares, crs="EPSG:4326")
+
+
 def build_tile(aoi_geom, region, level: int, tile, buffer_deg: float) -> gpd.GeoDataFrame:
     """Cells that touch the AOI and whose corrected centroid lies in ``tile``."""
     x0, y0, x1, y1 = tile.bounds
@@ -185,6 +203,8 @@ def _validate(request: BuildRequest, root: Path) -> None:
     formats = set(request.formats)
     if not formats or not formats <= set(FORMATS):
         raise ValueError(f"formats must be a non-empty subset of {FORMATS}")
+    if request.plots and request.level not in g.PLOT_LEVELS:
+        raise ValueError(f"1 ha plots need one of the levels {g.PLOT_LEVELS}")
     status = oi.name_status(root, request.name)
     if status == "taken":
         raise oi.NotAGridFolder(str(root / request.name))
@@ -234,12 +254,15 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
     tiles = plan_tiles(region, g.TILE_DEG[level])
 
     gpkg_tmp = work / f"{name}.gpkg"
+    plots_layer = f"{name}{g.PLOTS_SUFFIX}"
     total = 0
     for i, tile in enumerate(tiles, start=1):
         _check(cancel)
         cells = build_tile(aoi_geom, region, level, tile, buf)
         if len(cells):
             append_cells(cells, gpkg_tmp, name, first=total == 0)
+            if request.plots:
+                append_cells(plot_frame(cells), gpkg_tmp, plots_layer, first=total == 0)
             total += len(cells)
         logger.info("Tile %d/%d: %s cells", i, len(tiles), f"{total:,}")
         if on_progress is not None:
@@ -257,6 +280,8 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
         on_step("shp", None)
         logger.info("Converting to Shapefile")
         files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{name}.shp", name)]
+        if request.plots:
+            files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{plots_layer}.shp", plots_layer)]
     write_aoi_geojson(aoi.geometry, part / md.AOI_FILE)
     files += [md.AOI_FILE, md.METADATA_FILE]
     preview = _build_preview(gpkg_tmp, name, level, part, work, cancel, on_step)
@@ -268,6 +293,7 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
         name=name, aoi=aoi, level=level, formats=request.formats, files=files, cell_count=total,
         n_tiles=len(tiles), tile_deg=g.TILE_DEG[level], clip_buffer_deg=buf,
         duration_s=time.monotonic() - t0, versions=engine.versions(), generated_at=now, preview=preview,
+        plots_layer=plots_layer if request.plots else None,
     )
     if keep_gpkg:
         md.embed_in_gpkg(gpkg_tmp, name, record)

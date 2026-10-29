@@ -51,6 +51,7 @@ class AppState:
         self.out_name = solara.reactive("")
         self.name_edited = solara.reactive(False)  # user typed: stop auto-naming
         self.formats = solara.reactive(frozenset({"gpkg"}))
+        self.plots = solara.reactive(False)  # add the 1 ha centre plots
         # Job
         self.job = solara.reactive(JobState())
         self.cancel_event = solara.reactive(None, equals=_same)

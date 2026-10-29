@@ -50,6 +50,7 @@ Each grid gets its own folder in `~/module_results/fra_grid_generator/<name>/`:
 |---|---|
 | `<name>.gpkg` | The cells (GeoPackage). The metadata is embedded too. |
 | `<name>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | The cells (Shapefile), if selected. |
+| `<name>_plots` | Optional, r17 to r19: a 1 ha square (100 m × 100 m, north-up) at each cell centre, with the cell's fields except `area_ha`. A second layer in the GeoPackage and, with Shapefile, `<name>_plots.shp`. |
 | `metadata.json` | How and when the grid was made: app and DGGRID versions, grid parameters, correction, AOI, files. |
 | `aoi.geojson` | The area of interest used. |
 
