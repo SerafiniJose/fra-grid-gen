@@ -174,7 +174,8 @@ def Page():
     # when no provider exists yet.
     NotificationProvider()
 
-    # Left drawer: About and Documentation open as dialogs over the map.
+    # Left drawer: About and Documentation open as dialogs over the map; About
+    # opens by itself when the page loads (initial_step).
     steps_data = [
         {
             "id": 1,
@@ -199,6 +200,7 @@ def Page():
         app_icon="mdi-hexagon-multiple",
         main_map=[sepal_map],
         steps_data=steps_data,
+        initial_step=1,
         theme_state=theme_state,
         locales=app_available_locales(),
         repo_url=REPO_URL,
