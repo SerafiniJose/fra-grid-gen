@@ -151,7 +151,7 @@ def Page():
     use_app_locale()
 
     def create_map():
-        return sm.SepalMap(
+        m = sm.SepalMap(
             zoom=3,
             min_zoom=2,
             center=[0, 0],
@@ -160,6 +160,11 @@ def Page():
             theme_state=theme_state,
             fullscreen=True,
         )
+        # Added after init, not via basemaps=, so SepalMap still picks the
+        # light/dark SEPAL basemap from the theme; start it hidden.
+        m.add_basemap("SATELLITE")
+        m.layers[-1].visible = False
+        return m
 
     sepal_map = solara.use_memo(create_map, [id(gee_interface)])
 
