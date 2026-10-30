@@ -96,6 +96,7 @@
     "delete_title": "¿Eliminar la grilla?",
     "delete_message": "Se eliminará la carpeta {name} con todos sus archivos ({size}). No se puede deshacer.",
     "deleted": "Se eliminó {name}.",
+    "not_a_grid": "{name} ya no es una carpeta de grilla creada por esta aplicación. Se actualizó la lista.",
     "delete_failed": "No se pudo eliminar {name}: {error}",
     "busy": "Esta grilla se está generando.",
     "aoi": "Zona",

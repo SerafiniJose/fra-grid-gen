@@ -39,9 +39,9 @@ def perform_delete(state, map_, root, output, notifier) -> bool:
     except DeleteRefused as exc:
         if exc.reason == "busy":
             notifier.warning(t("outputs.busy"))
-        else:
-            notifier.error(t("outputs.delete_failed", name=output.name, error=exc.reason),
-                           timeout=ERROR_TOAST_TIMEOUT)
+        else:  # removed or replaced outside this session: re-list
+            notifier.error(t("outputs.not_a_grid", name=output.name), timeout=ERROR_TOAST_TIMEOUT)
+            state.outputs_signal.set(state.outputs_signal.value + 1)
         return False
     except OSError as exc:
         logger.exception("Delete failed")
@@ -112,9 +112,9 @@ def _detail_row(label, value):
 
 
 @solara.component
-def OutputCard(out, is_open, shown, can_preview, busy, zoom_hint, on_toggle, on_preview, on_metadata, on_delete):
+def OutputCard(out, plan, is_open, shown, can_preview, busy, zoom_hint, on_toggle, on_preview, on_metadata,
+               on_delete):
     """One grid: a slim card (name, summary, map shortcut) that opens into its details and actions."""
-    plan = map_layers.plan_preview(out.folder, out.name, out.metadata)
     with rv.Card(outlined=True, class_="pa-2", style_=_OPEN_STYLE if is_open else ""):
         with solara.Row(style="gap: 4px; align-items: flex-start; flex-wrap: nowrap;"):
             with rv.Html(tag="div", class_="output-head",
@@ -159,7 +159,12 @@ def OutputsTile(state, map_):
     to_delete, set_to_delete = solara.use_state(None)
     meta, set_meta = solara.use_state(None)
     root = results_dir()
-    outputs = solara.use_memo(lambda: list_outputs(root), [state.outputs_signal.value])
+    # Re-listed on opening the tab too: another tab or the file manager may have changed the folder.
+    on_tab = state.active_tab.value == 2
+    outputs = solara.use_memo(lambda: list_outputs(root), [state.outputs_signal.value, on_tab])
+    # Each progress tick re-renders this tile: check each grid's files once per listing, not per render.
+    plans = solara.use_memo(lambda: {o.name: map_layers.plan_preview(o.folder, o.name, o.metadata) for o in outputs},
+                            [outputs])
     busy = busy_names(state)
     job = state.job.value
     # While the job card says "Ready" it stands for the new grid: no second entry below it.
@@ -182,9 +187,10 @@ def OutputsTile(state, map_):
             shown = state.preview_name.value == out.name
             OutputCard(
                 out=out,
+                plan=plans[out.name],
                 is_open=state.open_output.value == out.name,
                 shown=shown,
-                can_preview=map_ is not None and map_layers.plan_preview(out.folder, out.name, out.metadata).available,
+                can_preview=map_ is not None and plans[out.name].available,
                 busy=out.name in busy,
                 zoom_hint=shown and zoom_hint_visible(state, out.name),
                 on_toggle=lambda n=out.name: toggle_open(n),

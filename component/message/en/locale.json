@@ -96,6 +96,7 @@
     "delete_title": "Delete grid?",
     "delete_message": "The folder {name} and all its files ({size}) will be deleted. This cannot be undone.",
     "deleted": "Deleted {name}.",
+    "not_a_grid": "{name} is no longer a grid folder made by this app. The list has been refreshed.",
     "delete_failed": "Could not delete {name}: {error}",
     "busy": "This grid is being generated.",
     "aoi": "AOI",

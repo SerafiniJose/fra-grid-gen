@@ -75,6 +75,17 @@ def test_delete_refuses_the_running_job(results_root):
     assert n.toasts == [("warning", "This grid is being generated.")]
 
 
+def test_delete_of_a_grid_removed_elsewhere_explains_and_relists(results_root):
+    import shutil
+
+    state, n = AppState(), FakeNotifier()
+    out = _grid(results_root, "g")
+    shutil.rmtree(results_root / "g")  # another tab or the file manager got there first
+    assert ot.perform_delete(state, None, results_root, out, n) is False
+    assert n.toasts == [("error", "g is no longer a grid folder made by this app. The list has been refreshed.")]
+    assert state.outputs_signal.value == 1
+
+
 def test_delete_keeps_other_preview(results_root):
     state, m, n = AppState(), FakeMap(), FakeNotifier()
     a, b = _grid(results_root, "a"), _grid(results_root, "b")
@@ -223,6 +234,8 @@ def test_finished_job_shows_ready_then_opens_the_new_grid(results_root, monkeypa
         assert _wait_for(lambda: state.open_output.value == "chaco_r17")
         assert state.job.value == JobState()
         assert _wait_for(lambda: not any("Ready" in w.children for w in rc.find(v.Chip).widgets))
+        # The settle thread may still be rendering the list card: wait for it, not just for the chip to go.
+        assert _wait_for(lambda: "chaco_r17.gpkg" in _strings(rc))
         texts = _strings(rc)
         assert texts.count("chaco_r17") == 1 and "chaco_r17.gpkg" in texts  # now the open list card
         assert _buttons(rc, "Metadata")
