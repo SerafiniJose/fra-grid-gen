@@ -174,10 +174,7 @@ def OutputsTile(state, map_):
         state.open_output.set(None if state.open_output.value == name else name)
 
     with solara.Column(style="gap: 12px;"):
-        with solara.Row(justify="space-between", style="align-items: center;"):
-            solara.Text(t("outputs.title"), style="font-weight: 600;")
-            solara.Button(t("common.refresh"), icon_name="mdi-refresh", text=True, small=True,
-                          on_click=lambda: state.outputs_signal.set(state.outputs_signal.value + 1))
+        solara.Text(t("outputs.title"), style="font-weight: 600;")
         JobCard(state=state)
         if not outputs and job.status == "idle":  # no job card above
             solara.Info(t("outputs.empty"))

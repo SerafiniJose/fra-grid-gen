@@ -9,7 +9,6 @@
     "cancel": "Cancel",
     "close": "Close",
     "delete": "Delete",
-    "refresh": "Refresh",
     "zoom_hint": "Zoom in to see the cells.",
     "preview_failed": "Could not show the grid on the map: {error}"
   },

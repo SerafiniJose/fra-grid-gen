@@ -9,7 +9,6 @@
     "cancel": "Cancelar",
     "close": "Cerrar",
     "delete": "Eliminar",
-    "refresh": "Actualizar",
     "zoom_hint": "Acerque el mapa para ver las celdas.",
     "preview_failed": "No se pudo mostrar la grilla en el mapa: {error}"
   },
