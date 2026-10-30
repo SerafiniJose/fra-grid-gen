@@ -1,0 +1,140 @@
+{
+  "app": {
+    "title": "Générateur de grille FRA",
+    "about": "À propos",
+    "documentation": "Documentation",
+    "panel_title": "Étapes de la grille"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "delete": "Supprimer",
+    "zoom_hint": "Zoomez pour voir les cellules.",
+    "preview_failed": "Impossible d'afficher la grille sur la carte : {error}"
+  },
+  "dialog": {
+    "confirm_default_title": "Êtes-vous sûr ?",
+    "confirm_default_message": "Cette action est irréversible.",
+    "confirm_default_label": "Confirmer"
+  },
+  "tabs": {
+    "aoi": "1 · AOI",
+    "grid": "2 · Grille",
+    "outputs": "3 · Résultats"
+  },
+  "aoi": {
+    "description": "Choisissez la zone à couvrir d'hexagones FRA : une unité administrative, un fichier vectoriel, une forme dessinée, des points ou un asset Earth Engine.",
+    "resolving": "Lecture de la géométrie de l'AOI…",
+    "summary_title": "Zone d'intérêt",
+    "method": "Méthode",
+    "area": "Superficie",
+    "bbox": "Emprise",
+    "points": "Points",
+    "estimate_r17": "Cellules FRA r17 estimées",
+    "continue": "Continuer vers Grille →",
+    "error": {
+      "empty": "L'AOI n'a pas de géométrie. Choisissez une autre zone.",
+      "no_polygon": "L'AOI n'a pas de surface polygonale. Utilisez une AOI de polygones ou de points.",
+      "antimeridian": "L'AOI traverse le méridien 180°. Divisez-la en deux parties, une de chaque côté de 180°, et générez chacune. Les cellules à cheval sur 180° vont avec la partie qui se termine à +180°.",
+      "fetch": "Impossible de lire la géométrie de l'AOI : {error}"
+    }
+  },
+  "grid": {
+    "locked": "Sélectionnez d'abord une AOI (onglet 1).",
+    "levels_title": "Niveau de grille",
+    "col": {
+      "level": "Niveau",
+      "area": "Surface de cellule",
+      "spacing": "Espacement",
+      "global": "Cellules globales",
+      "estimate": "Cellules est. dans l'AOI"
+    },
+    "status": {
+      "fra": "FRA RSS"
+    },
+    "caption": "Les cellules d'ouverture 3 ne s'emboîtent pas : les cellules plus fines sont reliées aux cellules FRA par fra_r17_id.",
+    "name_label": "Nom de sortie",
+    "name_hint": "Lettres, chiffres, _ et - uniquement. C'est aussi le nom du dossier.",
+    "name_error": {
+      "empty": "Saisissez un nom.",
+      "invalid": "Utilisez uniquement des lettres, chiffres, _ et -, en commençant par une lettre ou un chiffre.",
+      "too_long": "Utilisez au plus 80 caractères."
+    },
+    "name_exists": "Une grille porte déjà ce nom. La générer remplace son dossier.",
+    "name_taken": "Un dossier porte ce nom et n'a pas été créé par cette application. Choisissez un autre nom.",
+    "formats_title": "Formats",
+    "gpkg": "GeoPackage (.gpkg)",
+    "shp": "Shapefile (.shp)",
+    "shp_hint": "2 Go max. par fichier (~4M cellules), noms de champs de 10 caractères, pas de métadonnées intégrées.",
+    "shp_disabled": "Shapefile n'est pas disponible au-delà de 4 000 000 cellules estimées.",
+    "plots": "Ajouter une placette de 1 ha au centre de chaque cellule",
+    "plots_hint": "Un carré de 100 m × 100 m, écrit comme deuxième couche / fichier : <nom>_plots.",
+    "plots_disabled": "Les placettes de 1 ha ne sont disponibles que de r17 à r19 : les cellules plus fines sont plus petites que la placette.",
+    "formats_empty": "Choisissez au moins un format.",
+    "generate": "Générer la grille",
+    "cancel": "Annuler",
+    "blocked_hint": "Environ {cells} cellules, au-delà de la limite de 10 000 000. Utilisez une AOI plus petite ou un niveau plus grossier.",
+    "warn_title": "Grande grille",
+    "warn_message": "Environ {cells} cellules. Cela peut prendre plusieurs minutes et environ {size} de disque.",
+    "warn_confirm": "Générer quand même",
+    "overwrite_title": "Remplacer la grille existante ?",
+    "overwrite_message": "Le dossier {name} existe déjà. Il sera remplacé une fois la nouvelle grille terminée.",
+    "overwrite_confirm": "Remplacer",
+    "task_title": "Grille r{level} · {aoi}",
+    "progress": "Tuile {done}/{total} · {cells} cellules",
+    "success": "Grille r{level} prête : {cells} cellules → {file}",
+    "cancelled": "Génération de la grille annulée. Aucun fichier n'a été conservé.",
+    "failed": "Échec de la génération de la grille : {error}",
+    "engine_missing": "Binaire DGGRID introuvable : réinstallez l'environnement du module.",
+    "disk_full": "Espace disque insuffisant pour écrire {name}."
+  },
+  "outputs": {
+    "empty": "Aucune grille pour l'instant. Générez-en une dans l'onglet Grille.",
+    "cells": "{cells} cellules",
+    "show": "Afficher sur la carte",
+    "hide": "Retirer de la carte",
+    "metadata": "Métadonnées",
+    "delete_title": "Supprimer la grille ?",
+    "delete_message": "Le dossier {name} et tous ses fichiers ({size}) seront supprimés. Cette action est irréversible.",
+    "deleted": "{name} supprimé.",
+    "not_a_grid": "{name} n'est plus un dossier de grille créé par cette application. La liste a été actualisée.",
+    "delete_failed": "Impossible de supprimer {name} : {error}",
+    "busy": "Cette grille est en cours de génération.",
+    "aoi": "AOI",
+    "run": "Exécution",
+    "preview": "Aperçu cartographique",
+    "points": "{n} points",
+    "tiles": "{n} tuiles",
+    "total": "{size} au total",
+    "preview_pmtiles": "PMTiles · zoom {min}–{max}",
+    "preview_geojson": "Dessiné cellule par cellule (pas de fichier d'aperçu)",
+    "preview_none": "Non disponible (pas de fichier d'aperçu, plus de 50 000 cellules)",
+    "job": {
+      "steps": {
+        "cells": "Génération des cellules",
+        "shp": "Conversion en Shapefile",
+        "preview": "Création de l'aperçu cartographique (PMTiles)",
+        "finish": "Écriture des fichiers et des métadonnées"
+      },
+      "preview_feed": "Envoi des cellules à tippecanoe · {pct} %",
+      "preview_tiles": "tippecanoe découpe les tuiles vectorielles · {pct} %",
+      "preview_about": "Un fichier PMTiles caché de tuiles vectorielles qui permet à la carte de dessiner la grille à n'importe quelle taille. Ce n'est pas un des fichiers de sortie.",
+      "elapsed": "Écoulé {time}",
+      "remaining": "environ {time} restant",
+      "estimating": "estimation du temps restant…",
+      "dismiss": "Masquer",
+      "ready": "Prêt",
+      "finished": "Terminé en {time}"
+    }
+  },
+  "metadata": {
+    "title": "Métadonnées · {name}",
+    "folder": "Dossier",
+    "generated": "Générée",
+    "dggs": "DGGS",
+    "aoi": "AOI",
+    "run": "Exécution",
+    "correction": "Correction",
+    "raw": "JSON brut"
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "app": {
+    "title": "Gerador de grelha FRA",
+    "about": "Sobre",
+    "documentation": "Documentação",
+    "panel_title": "Fluxo da grelha"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "delete": "Eliminar",
+    "zoom_hint": "Aproxime para ver as células.",
+    "preview_failed": "Não foi possível mostrar a grelha no mapa: {error}"
+  },
+  "dialog": {
+    "confirm_default_title": "Tem a certeza?",
+    "confirm_default_message": "Esta ação não pode ser desfeita.",
+    "confirm_default_label": "Confirmar"
+  },
+  "tabs": {
+    "aoi": "1 · AOI",
+    "grid": "2 · Grelha",
+    "outputs": "3 · Resultados"
+  },
+  "aoi": {
+    "description": "Selecione a área a cobrir com hexágonos FRA: uma unidade administrativa, um ficheiro vetorial, uma forma desenhada, pontos ou um asset do Earth Engine.",
+    "resolving": "A ler a geometria da AOI…",
+    "summary_title": "Área de interesse",
+    "method": "Método",
+    "area": "Área",
+    "bbox": "Extensão",
+    "points": "Pontos",
+    "estimate_r17": "Células FRA r17 estimadas",
+    "continue": "Continuar para Grelha →",
+    "error": {
+      "empty": "A AOI não tem geometria. Escolha outra área.",
+      "no_polygon": "A AOI não tem área poligonal. Use uma AOI de polígonos ou de pontos.",
+      "antimeridian": "A AOI atravessa o meridiano 180°. Divida-a em duas partes, uma de cada lado de 180°, e gere cada uma. As células que atravessam 180° vão com a parte que termina em +180°.",
+      "fetch": "Não foi possível ler a geometria da AOI: {error}"
+    }
+  },
+  "grid": {
+    "locked": "Selecione primeiro uma AOI (separador 1).",
+    "levels_title": "Nível da grelha",
+    "col": {
+      "level": "Nível",
+      "area": "Área da célula",
+      "spacing": "Espaçamento",
+      "global": "Células globais",
+      "estimate": "Células est. na AOI"
+    },
+    "status": {
+      "fra": "FRA RSS"
+    },
+    "caption": "As células de abertura 3 não se encaixam: as células mais finas ligam-se às células FRA através de fra_r17_id.",
+    "name_label": "Nome de saída",
+    "name_hint": "Apenas letras, dígitos, _ e -. É também o nome da pasta.",
+    "name_error": {
+      "empty": "Introduza um nome.",
+      "invalid": "Use apenas letras, dígitos, _ e -, começando por uma letra ou dígito.",
+      "too_long": "Use no máximo 80 caracteres."
+    },
+    "name_exists": "Já existe uma grelha com este nome. Gerar substitui a sua pasta.",
+    "name_taken": "Existe uma pasta com este nome que não foi criada por esta aplicação. Escolha outro nome.",
+    "formats_title": "Formatos",
+    "gpkg": "GeoPackage (.gpkg)",
+    "shp": "Shapefile (.shp)",
+    "shp_hint": "Máx. 2 GB por ficheiro (~4M células), nomes de campos de 10 caracteres, sem metadados incorporados.",
+    "shp_disabled": "Shapefile não está disponível acima de 4 000 000 de células estimadas.",
+    "plots": "Adicionar uma parcela de 1 ha no centro de cada célula",
+    "plots_hint": "Um quadrado de 100 m × 100 m, escrito como segunda camada / ficheiro: <nome>_plots.",
+    "plots_disabled": "As parcelas de 1 ha só estão disponíveis de r17 a r19: as células mais finas são menores do que a parcela.",
+    "formats_empty": "Escolha pelo menos um formato.",
+    "generate": "Gerar grelha",
+    "cancel": "Cancelar",
+    "blocked_hint": "Cerca de {cells} células, acima do limite de 10 000 000. Use uma AOI menor ou um nível mais grosseiro.",
+    "warn_title": "Grelha grande",
+    "warn_message": "Cerca de {cells} células. Isto pode demorar vários minutos e ocupar cerca de {size} de disco.",
+    "warn_confirm": "Gerar mesmo assim",
+    "overwrite_title": "Substituir a grelha existente?",
+    "overwrite_message": "A pasta {name} já existe. Será substituída quando a nova grelha estiver concluída.",
+    "overwrite_confirm": "Substituir",
+    "task_title": "Grelha r{level} · {aoi}",
+    "progress": "Mosaico {done}/{total} · {cells} células",
+    "success": "Grelha r{level} pronta: {cells} células → {file}",
+    "cancelled": "Geração da grelha cancelada. Nenhum ficheiro foi mantido.",
+    "failed": "A geração da grelha falhou: {error}",
+    "engine_missing": "Binário DGGRID não encontrado: reinstale o ambiente do módulo.",
+    "disk_full": "Espaço em disco insuficiente para escrever {name}."
+  },
+  "outputs": {
+    "empty": "Ainda não há grelhas. Gere uma no separador Grelha.",
+    "cells": "{cells} células",
+    "show": "Mostrar no mapa",
+    "hide": "Remover do mapa",
+    "metadata": "Metadados",
+    "delete_title": "Eliminar a grelha?",
+    "delete_message": "A pasta {name} e todos os seus ficheiros ({size}) serão eliminados. Esta ação não pode ser desfeita.",
+    "deleted": "{name} eliminada.",
+    "not_a_grid": "{name} já não é uma pasta de grelha criada por esta aplicação. A lista foi atualizada.",
+    "delete_failed": "Não foi possível eliminar {name}: {error}",
+    "busy": "Esta grelha está a ser gerada.",
+    "aoi": "AOI",
+    "run": "Execução",
+    "preview": "Pré-visualização no mapa",
+    "points": "{n} pontos",
+    "tiles": "{n} mosaicos",
+    "total": "{size} no total",
+    "preview_pmtiles": "PMTiles · zoom {min}–{max}",
+    "preview_geojson": "Desenhada célula a célula (sem ficheiro de pré-visualização)",
+    "preview_none": "Não disponível (sem ficheiro de pré-visualização, mais de 50 000 células)",
+    "job": {
+      "steps": {
+        "cells": "A gerar as células",
+        "shp": "A converter para Shapefile",
+        "preview": "A criar a pré-visualização no mapa (PMTiles)",
+        "finish": "A escrever ficheiros e metadados"
+      },
+      "preview_feed": "A enviar células para o tippecanoe · {pct}%",
+      "preview_tiles": "O tippecanoe está a cortar mosaicos vetoriais · {pct}%",
+      "preview_about": "Um ficheiro PMTiles oculto de mosaicos vetoriais que permite ao mapa desenhar a grelha em qualquer tamanho. Não é um dos ficheiros de saída.",
+      "elapsed": "Decorrido {time}",
+      "remaining": "faltam cerca de {time}",
+      "estimating": "a estimar o tempo restante…",
+      "dismiss": "Dispensar",
+      "ready": "Pronto",
+      "finished": "Concluído em {time}"
+    }
+  },
+  "metadata": {
+    "title": "Metadados · {name}",
+    "folder": "Pasta",
+    "generated": "Gerada",
+    "dggs": "DGGS",
+    "aoi": "AOI",
+    "run": "Execução",
+    "correction": "Correção",
+    "raw": "JSON bruto"
+  }
+}

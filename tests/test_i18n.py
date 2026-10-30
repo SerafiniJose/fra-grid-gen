@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from component import i18n
 
@@ -26,11 +27,12 @@ def _used_keys():
 
 
 def test_locales_are_shipped():
-    assert i18n.app_available_locales() == ["en", "es-ES"]
+    assert i18n.app_available_locales() == ["en", "es-ES", "fr-FR", "pt-PT"]
 
 
-def test_catalogs_have_identical_keys():
-    assert _keys("en") == _keys("es-ES")
+@pytest.mark.parametrize("locale", ["es-ES", "fr-FR", "pt-PT"])
+def test_catalogs_have_identical_keys(locale):
+    assert _keys("en") == _keys(locale)
 
 
 def test_every_key_used_in_code_exists():
@@ -47,6 +49,6 @@ def test_antimeridian_message_says_which_part_carries_the_180_cells():
     import json
     from pathlib import Path
 
-    for loc in ("en", "es-ES"):
+    for loc in i18n.app_available_locales():
         catalog = json.loads((Path(__file__).parents[1] / "component" / "message" / loc / "locale.json").read_text())
         assert "+180°" in catalog["aoi"]["error"]["antimeridian"], loc
