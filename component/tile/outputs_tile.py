@@ -174,7 +174,6 @@ def OutputsTile(state, map_):
         state.open_output.set(None if state.open_output.value == name else name)
 
     with solara.Column(style="gap: 12px;"):
-        solara.Text(t("outputs.title"), style="font-weight: 600;")
         JobCard(state=state)
         if not outputs and job.status == "idle":  # no job card above
             solara.Info(t("outputs.empty"))

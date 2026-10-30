@@ -89,7 +89,6 @@
     "disk_full": "Not enough disk space to write {name}."
   },
   "outputs": {
-    "title": "Generated grids",
     "empty": "No grids yet. Generate one in the Grid tab.",
     "cells": "{cells} cells",
     "show": "Show on map",

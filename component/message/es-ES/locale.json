@@ -89,7 +89,6 @@
     "disk_full": "No hay espacio en disco suficiente para escribir {name}."
   },
   "outputs": {
-    "title": "Grillas generadas",
     "empty": "Aún no hay grillas. Genere una en la pestaña Grilla.",
     "cells": "{cells} celdas",
     "show": "Ver en el mapa",
