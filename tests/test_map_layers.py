@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import geopandas as gpd
 import pytest
 import pyogrio
@@ -34,6 +36,20 @@ def test_remove_grid_layer_is_idempotent(tmp_path):
     assert ml.remove_grid(m) is True
     assert ml.remove_grid(m) is False
     assert ml.remove_grid(None) is False
+
+
+def test_remove_grid_forgets_layers_the_layers_control_hid(tmp_path):
+    m = FakeMap()
+    ml.show_grid(m, _gpkg(tmp_path, True), "g", name="g", centroids=(tmp_path / "g.gpkg", "g_centroids"))
+    grid = m.find_layer(ml.GRID_LAYER_KEY)
+    other = type("Layer", (), {"key": "someone_else"})()  # hashable, like an ipyleaflet layer
+    control = SimpleNamespace(hidden={grid: 0, other: 1}, rebuilt=0)
+    control.update_table = lambda change: setattr(control, "rebuilt", control.rebuilt + 1)
+    m.controls.append(control)
+    m.remove_layer(grid)  # what LayersControl does when its row is unchecked
+    assert ml.remove_grid(m) is True and m.layers == []
+    assert control.hidden == {other: 1} and control.rebuilt == 1
+    assert ml.remove_grid(m) is False
 
 
 def test_draw_control_hidden_off_the_aoi_tab_and_restored():

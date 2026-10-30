@@ -57,6 +57,7 @@ class AppState:
         self.outputs_signal = solara.reactive(0)  # bump to re-list the results folder
         self.preview_name = solara.reactive(None)  # grid shown on the map
         self.preview_minzoom = solara.reactive(None)  # its PMTiles min zoom; None for GeoJSON
+        self.preview_loading = solara.reactive(None)  # grid being added to the map
         self.map_zoom = solara.reactive(None)  # the shared map's zoom, for the zoom hint
         self.active_tab = solara.reactive(0)
 

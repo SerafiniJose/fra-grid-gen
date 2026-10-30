@@ -60,8 +60,11 @@ def confirm_steps(verdict: str, name_state: str) -> list:
     return steps
 
 
-def show_on_map(state, map_, folder, name: str, metadata: dict, notifier=None) -> bool:
-    """Show one grid's preview (PMTiles or GeoJSON) and record it in the state."""
+def show_on_map(state, map_, folder, name: str, metadata: dict, notifier=None, failed_text=None) -> bool:
+    """Show one grid's preview (PMTiles or GeoJSON) and record it in the state.
+
+    ``failed_text`` is the error toast template (``{error}``), resolved beforehand on a worker.
+    """
     plan = map_layers.plan_preview(folder, name, metadata)
     if map_ is None or not plan.available:
         return False
@@ -71,7 +74,8 @@ def show_on_map(state, map_, folder, name: str, metadata: dict, notifier=None) -
     except Exception as exc:
         logger.exception("Map preview failed")
         if notifier is not None:
-            notifier.error(t("common.preview_failed", error=str(exc) or type(exc).__name__),
+            failed_text = failed_text or t("common.preview_failed", error="{error}")
+            notifier.error(failed_text.format(error=str(exc) or type(exc).__name__),
                            timeout=ERROR_TOAST_TIMEOUT)
         return False
     state.preview_minzoom.set(minzoom)

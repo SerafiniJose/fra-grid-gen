@@ -241,11 +241,33 @@ def zoom_hint_needed(zoom, minzoom) -> bool:
     return minzoom is not None and zoom is not None and float(zoom) < minzoom
 
 
+def _forget_hidden(map_, keys) -> bool:
+    """Drop our layers from pysepal's LayersControl ``hidden`` registry.
+
+    The control hides a PMTiles layer (no ``visible`` trait) by taking it off the
+    map and keeping it there, so ``find_layer`` misses it and its unchecked row
+    would outlive the preview, next to the new one.
+    """
+    forgot = False
+    for control in getattr(map_, "controls", ()):
+        hidden = getattr(control, "hidden", None)
+        if not isinstance(hidden, dict):
+            continue
+        stale = [lyr for lyr in hidden if getattr(lyr, "key", None) in keys]
+        for lyr in stale:
+            del hidden[lyr]
+        if stale:
+            control.update_table({})
+            forgot = True
+    return forgot
+
+
 def remove_grid(map_) -> bool:
     if map_ is None:
         return False
-    removed = False
-    for key in (GRID_LAYER_KEY, CENTROIDS_LAYER_KEY, AOI_LAYER_KEY):
+    keys = (GRID_LAYER_KEY, CENTROIDS_LAYER_KEY, AOI_LAYER_KEY)
+    removed = _forget_hidden(map_, keys)
+    for key in keys:
         layer = map_.find_layer(key, none_ok=True)
         if layer is not None:
             map_.remove_layer(layer)

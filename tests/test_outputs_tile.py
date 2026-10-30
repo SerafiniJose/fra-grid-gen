@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import geopandas as gpd
 import ipyvuetify as v
 import pyogrio
+import pytest
 from _fakes import FakeMap
 from shapely.geometry import box
 
@@ -12,6 +13,12 @@ from component.model.state_manager import AppState, JobState
 from component.scripts import map_layers as ml
 from component.scripts.outputs_index import load_output
 from component.tile import outputs_tile as ot
+
+
+@pytest.fixture(autouse=True)
+def inline_spawn(monkeypatch):
+    """Add grids to the map on the calling thread, so the tests see the result at once."""
+    monkeypatch.setattr(ot, "spawn_in_context", lambda target, args=(): target(*args))
 
 
 class FakeNotifier:
@@ -97,6 +104,28 @@ def test_toggle_preview_hides_on_second_call(results_root):
     ot.toggle_preview(state, m, out)
     ot.toggle_preview(state, m, out)
     assert state.preview_name.value is None and m.find_layer(ml.GRID_LAYER_KEY) is None
+
+
+def test_clicks_while_a_grid_is_being_added_are_ignored(results_root, monkeypatch):
+    spawned = []
+    monkeypatch.setattr(ot, "spawn_in_context", lambda target, args=(): spawned.append(target))
+    state, m = AppState(), FakeMap()
+    a, b = _grid(results_root, "a"), _grid(results_root, "b")
+    ot.toggle_preview(state, m, a)
+    assert state.preview_loading.value == "a" and len(spawned) == 1
+    ot.toggle_preview(state, m, a)
+    ot.toggle_preview(state, m, b)
+    assert len(spawned) == 1 and m.layers == []
+    box_, rc = _render_outputs(state, m)
+    try:
+        add = _icon(rc, "mdi-map-plus")
+        assert [b.disabled for b in add] == [True, True] and sorted(b.loading for b in add) == [False, True]
+        spawned[0]()
+        assert state.preview_loading.value is None and state.preview_name.value == "a"
+        assert [lyr.key for lyr in m.layers] == [ml.GRID_LAYER_KEY]
+        assert not _icon(rc, "mdi-map-plus")[0].disabled
+    finally:
+        rc.close()
 
 
 # ---- the list ---------------------------------------------------------------------

@@ -20,6 +20,7 @@ from component.parameter.directory import results_dir
 from component.scripts import map_layers
 from component.scripts.notify_bridge import ERROR_TOAST_TIMEOUT
 from component.scripts.outputs_index import DeleteRefused, delete_output, list_outputs
+from component.scripts.solara_threads import spawn_in_context
 from component.scripts.writers import human_size
 from component.tile.grid_tile import hide_from_map, show_on_map, zoom_hint_visible
 from component.widget.confirm_dialog import ConfirmDialog
@@ -30,10 +31,22 @@ logger = logging.getLogger(g.LOGGER_NAME)
 
 
 def toggle_preview(state, map_, output, notifier=None) -> None:
+    """Hide the grid, or add it on a worker: the map buttons stay off until it is on the map."""
+    if state.preview_loading.value is not None:  # clicks queued while a grid was being added
+        return
     if state.preview_name.value == output.name:
         hide_from_map(state, map_)
         return
-    show_on_map(state, map_, output.folder, output.name, output.metadata, notifier)
+    failed_text = t("common.preview_failed", error="{error}")  # t() must not run on the worker
+    state.preview_loading.set(output.name)
+
+    def add():
+        try:
+            show_on_map(state, map_, output.folder, output.name, output.metadata, notifier, failed_text)
+        finally:
+            state.preview_loading.set(None)
+
+    spawn_in_context(add)
 
 
 def perform_delete(state, map_, root, output, notifier) -> bool:
@@ -84,9 +97,9 @@ def _tip(text, child):
         child()
 
 
-def _action(icon, tip, on_click, disabled=False, color=None):
+def _action(icon, tip, on_click, disabled=False, color=None, loading=False):
     _tip(tip, lambda: solara.Button("", icon_name=icon, on_click=on_click, icon=True, text=True, x_small=True,
-                                    color=color, disabled=disabled))
+                                    color=color, disabled=disabled, loading=loading))
 
 
 def _verb(label, icon, tip, on_click, color=None):
@@ -156,7 +169,7 @@ def job_row(state, job, notifier):
 
 
 @solara.component
-def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_details, on_delete):
+def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_details, on_delete, loading=None):
     with rv.Html(tag="div", style_=_ROW):
         _name_cell(out.name, out.aoi_label)
         _level_cell(out.level)
@@ -171,8 +184,9 @@ def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_detai
                 map_tip = t("outputs.preview_none")
             else:
                 map_tip = t("outputs.hide") if shown else t("outputs.show")
-            _action("mdi-map-minus" if shown else "mdi-map-plus", map_tip, on_preview, disabled=not can_preview,
-                    color="primary" if shown else "grey darken-1")
+            _action("mdi-map-minus" if shown else "mdi-map-plus", map_tip, on_preview,
+                    disabled=not can_preview or loading is not None, color="primary" if shown else "grey darken-1",
+                    loading=loading == out.name)
             _action("mdi-information-outline", t("outputs.tip.details"), on_details, color="grey darken-1")
             _action("mdi-delete-outline", t("outputs.busy") if busy else t("outputs.tip.delete"), on_delete,
                     disabled=busy)
@@ -217,6 +231,7 @@ def OutputsTile(state, map_):
                     on_preview=lambda o=out: toggle_preview(state, map_, o, notifier),
                     on_details=lambda o=out: set_details(o),
                     on_delete=lambda o=out: set_to_delete(o),
+                    loading=state.preview_loading.value,
                 ).key(out.name)
 
     def confirm_delete():
