@@ -47,6 +47,7 @@ class AoiInfo:
     n_points: int | None = None
     admin_code: str | None = None
     source: str | None = None
+    spec: dict | None = None  # pysepal AoiSpec.to_dict(): what the user picked, to reload it
 
     @property
     def is_points(self) -> bool:
@@ -72,7 +73,7 @@ def _parts(geoms):
     return shapely.get_parts(shapely.get_parts(geoms))
 
 
-def prepare_aoi(gdf, *, method: str, label: str, admin_code=None, source=None) -> AoiInfo:
+def prepare_aoi(gdf, *, method: str, label: str, admin_code=None, source=None, spec=None) -> AoiInfo:
     if gdf is None or len(gdf) == 0:
         raise AoiError("empty")
     if gdf.crs is not None and gdf.crs.to_epsg() != 4326:
@@ -121,6 +122,7 @@ def prepare_aoi(gdf, *, method: str, label: str, admin_code=None, source=None) -
         n_points=n_points,
         admin_code=admin_code,
         source=source,
+        spec=spec,
     )
 
 
@@ -205,4 +207,6 @@ def aoi_info_from_result(result) -> AoiInfo:
         raise
     except Exception as exc:  # network / EE failures become a readable card
         raise AoiError("fetch", str(exc)) from exc
-    return prepare_aoi(gdf, method=result.method, label=label, admin_code=result.admin, source=source)
+    spec = getattr(result, "spec", None)
+    return prepare_aoi(gdf, method=result.method, label=label, admin_code=result.admin, source=source,
+                       spec=spec.to_dict() if spec is not None else None)

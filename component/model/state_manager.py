@@ -46,6 +46,7 @@ class AppState:
         self.aoi_info = solara.reactive(None, equals=_same)  # AoiInfo (geometry ready)
         self.aoi_error = solara.reactive(None)  # (key, detail) or None
         self.aoi_resolving = solara.reactive(False)  # our worker builds AoiInfo
+        self.aoi_spec = solara.reactive(None)  # AoiView's two-way AoiSpec: set it to reload an AOI
         # Grid tab
         self.level = solara.reactive(g.FRA_LEVEL)
         self.out_name = solara.reactive("")

@@ -23,6 +23,7 @@ pasta de resultados tem um cartão. A partir do cartão pode:
 
 - mostrar a grelha no mapa (o ícone do olho),
 - abrir os seus metadados,
+- recarregar a sua AOI no separador AOI, para gerar outra grelha da mesma área,
 - eliminar a sua pasta.
 
 ### Níveis da grelha

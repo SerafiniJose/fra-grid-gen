@@ -108,6 +108,7 @@ def build_record(
             "bbox": [round(v, 6) for v in aoi.bbox],
             "wkb_sha256": aoi.wkb_sha256,
             "geometry_file": AOI_FILE,
+            "spec": aoi.spec,  # pysepal AoiSpec payload, or None
         },
         "run": {
             "tile_deg": tile_deg,

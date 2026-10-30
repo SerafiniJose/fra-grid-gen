@@ -4,17 +4,21 @@ Each grid is a slim card; clicking its header opens its details and actions,
 one card at a time (``state.open_output``).
 """
 
+import json
 import logging
+from pathlib import Path
 
 import reacton.ipyvuetify as rv
 import solara
 from pysepal.solara import use_notifications
+from pysepal.solara.components.aoi import AoiSpec
 
 from component.i18n import t
 from component.model.generate_job import busy_names
 from component.parameter import grid as g
 from component.parameter.directory import results_dir
 from component.scripts import map_layers
+from component.scripts.metadata import AOI_FILE
 from component.scripts.notify_bridge import ERROR_TOAST_TIMEOUT
 from component.scripts.outputs_index import DeleteRefused, delete_output, list_outputs
 from component.scripts.writers import human_size
@@ -31,6 +35,39 @@ def toggle_preview(state, map_, output, notifier=None) -> None:
         hide_from_map(state, map_)
         return
     show_on_map(state, map_, output.folder, output.name, output.metadata, notifier)
+
+
+def reload_spec(out):
+    """The AoiSpec that reloads a grid's AOI, or None when it cannot be rebuilt.
+
+    The recorded spec restores the original picker. Grids made before it was
+    recorded, or whose source file is gone, reload their aoi.geojson as a drawn
+    shape instead; a points AOI cannot come back that way.
+    """
+    aoi = out.metadata.get("aoi", {})
+    try:
+        spec = AoiSpec.from_dict(aoi["spec"]) if aoi.get("spec") else None
+    except ValueError:  # written by a newer pysepal
+        spec = None
+    if spec is not None and (not spec.pathname or Path(spec.pathname).is_file()):
+        return spec
+    if aoi.get("n_points") is not None:
+        return None
+    try:
+        geo_json = json.loads((out.folder / AOI_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return AoiSpec(method="DRAW", name=out.aoi_label or out.name, geo_json=geo_json)
+
+
+def reload_aoi(state, out, notifier) -> bool:
+    spec = reload_spec(out)
+    if spec is None:
+        notifier.warning(t("outputs.reload_failed", name=out.name))
+        return False
+    state.aoi_spec.set(spec)
+    state.active_tab.set(0)
+    return True
 
 
 def perform_delete(state, map_, root, output, notifier) -> bool:
@@ -113,7 +150,7 @@ def _detail_row(label, value):
 
 @solara.component
 def OutputCard(out, plan, is_open, shown, can_preview, busy, zoom_hint, on_toggle, on_preview, on_metadata,
-               on_delete):
+               on_reload, on_delete):
     """One grid: a slim card (name, summary, map shortcut) that opens into its details and actions."""
     with rv.Card(outlined=True, class_="pa-2", style_=_OPEN_STYLE if is_open else ""):
         with solara.Row(style="gap: 4px; align-items: flex-start; flex-wrap: nowrap;"):
@@ -149,6 +186,8 @@ def OutputCard(out, plan, is_open, shown, can_preview, busy, zoom_hint, on_toggl
                           on_click=on_preview)
             solara.Button(t("outputs.metadata"), small=True, text=True, icon_name="mdi-information",
                           on_click=on_metadata)
+            solara.Button(t("outputs.reload_aoi"), small=True, text=True, icon_name="mdi-map-marker-radius",
+                          on_click=on_reload)
             solara.Button(t("common.delete"), small=True, text=True, color="error", icon_name="mdi-delete",
                           disabled=busy, on_click=on_delete)
 
@@ -192,6 +231,7 @@ def OutputsTile(state, map_):
                 on_toggle=lambda n=out.name: toggle_open(n),
                 on_preview=lambda o=out: toggle_preview(state, map_, o, notifier),
                 on_metadata=lambda o=out: set_meta(o),
+                on_reload=lambda o=out: reload_aoi(state, o, notifier),
                 on_delete=lambda o=out: set_to_delete(o),
             ).key(out.name)
 

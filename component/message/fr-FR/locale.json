@@ -94,6 +94,8 @@
     "show": "Afficher sur la carte",
     "hide": "Retirer de la carte",
     "metadata": "Métadonnées",
+    "reload_aoi": "Recharger l'AOI",
+    "reload_failed": "Impossible de recharger l'AOI de {name} : sa source n'existe plus.",
     "delete_title": "Supprimer la grille ?",
     "delete_message": "Le dossier {name} et tous ses fichiers ({size}) seront supprimés. Cette action est irréversible.",
     "deleted": "{name} supprimé.",

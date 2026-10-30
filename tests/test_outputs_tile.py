@@ -282,3 +282,34 @@ def test_eye_shows_the_grid_on_the_map_without_opening_its_card(results_root):
         assert state.preview_name.value is None
     finally:
         rc.close()
+
+
+def _with_aoi(out, aoi):
+    record = {**out.metadata, "aoi": {"label": "t", **aoi}}
+    (out.folder / "metadata.json").write_text(json.dumps(record))
+    return load_output(out.folder.parent, out.name)
+
+
+def test_reload_uses_the_recorded_spec(results_root):
+    out = _with_aoi(_grid(results_root, "g"), {"spec": {"method": "ADMIN1", "admin_codes": ["1", "2"]}})
+    state, n = AppState(), FakeNotifier()
+    assert ot.reload_aoi(state, out, n) is True
+    assert state.aoi_spec.value == ot.AoiSpec(method="ADMIN1", admin_codes=("1", "2"))
+    assert state.active_tab.value == 0 and n.toasts == []
+
+
+def test_reload_falls_back_to_the_saved_geometry(results_root):
+    geo_json = {"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {}, "geometry": {"type": "Point", "coordinates": [0, 0]}}]}
+    gone = {"method": "SHAPE", "pathname": str(results_root / "moved.gpkg")}
+    for name, aoi in (("old", {}), ("moved", {"spec": gone})):
+        out = _with_aoi(_grid(results_root, name), aoi)
+        (out.folder / "aoi.geojson").write_text(json.dumps(geo_json))
+        assert ot.reload_spec(out) == ot.AoiSpec(method="DRAW", name="t", geo_json=geo_json), name
+
+
+def test_reload_refuses_points_without_their_file(results_root):
+    out = _with_aoi(_grid(results_root, "p"), {"n_points": 3})
+    state, n = AppState(), FakeNotifier()
+    assert ot.reload_aoi(state, out, n) is False
+    assert state.aoi_spec.value is None and n.toasts[0][0] == "warning"

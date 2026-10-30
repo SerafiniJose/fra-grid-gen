@@ -94,6 +94,8 @@
     "show": "Show on map",
     "hide": "Remove from map",
     "metadata": "Metadata",
+    "reload_aoi": "Reload AOI",
+    "reload_failed": "Could not reload the AOI of {name}: its source is gone.",
     "delete_title": "Delete grid?",
     "delete_message": "The folder {name} and all its files ({size}) will be deleted. This cannot be undone.",
     "deleted": "Deleted {name}.",

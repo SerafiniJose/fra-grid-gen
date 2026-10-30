@@ -24,6 +24,7 @@ grille de votre dossier de résultats a une carte. Depuis la carte, vous pouvez 
 
 - afficher la grille sur la carte (l'icône en forme d'œil),
 - ouvrir ses métadonnées,
+- recharger son AOI dans l'onglet AOI, pour créer une autre grille de la même zone,
 - supprimer son dossier.
 
 ### Niveaux de grille

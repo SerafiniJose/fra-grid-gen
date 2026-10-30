@@ -23,6 +23,7 @@ card. From the card you can:
 
 - show the grid on the map (the eye icon),
 - open its metadata,
+- reload its AOI into the AOI tab, to make another grid of the same area,
 - delete its folder.
 
 ### Grid levels

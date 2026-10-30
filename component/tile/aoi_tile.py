@@ -94,7 +94,8 @@ def AoiTile(state, map_):
 
     with solara.Column(style="gap: 16px;"):
         solara.Text(t("aoi.description"))
-        AoiView(value=state.aoi_result, loading=state.aoi_loading, methods="ALL", map_=map_, gee=True)
+        AoiView(value=state.aoi_result, loading=state.aoi_loading, spec=state.aoi_spec, methods="ALL", map_=map_,
+                gee=True)
         if state.aoi_resolving.value:
             rv.ProgressLinear(indeterminate=True, color="primary")
             solara.Text(t("aoi.resolving"), style="opacity: 0.7;")

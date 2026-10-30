@@ -94,6 +94,8 @@
     "show": "Ver en el mapa",
     "hide": "Quitar del mapa",
     "metadata": "Metadatos",
+    "reload_aoi": "Recargar AOI",
+    "reload_failed": "No se pudo recargar la AOI de {name}: su origen ya no existe.",
     "delete_title": "¿Eliminar la grilla?",
     "delete_message": "Se eliminará la carpeta {name} con todos sus archivos ({size}). No se puede deshacer.",
     "deleted": "Se eliminó {name}.",

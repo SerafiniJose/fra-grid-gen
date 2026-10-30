@@ -23,6 +23,7 @@ de tu carpeta de resultados tiene una tarjeta. Desde la tarjeta puedes:
 
 - mostrar la grilla en el mapa (el icono del ojo),
 - abrir sus metadatos,
+- recargar su AOI en la pestaña AOI, para generar otra grilla de la misma zona,
 - borrar su carpeta.
 
 ### Niveles de la grilla
