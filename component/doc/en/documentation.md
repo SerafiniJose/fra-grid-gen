@@ -17,13 +17,14 @@ pick the formats:
 Then press **Generate grid**. Above 2,000,000 estimated cells the app asks you to
 confirm first.
 
-**3 · Outputs.** The running job shows each step, the elapsed time and the time left. You
-can cancel it; a cancelled run leaves no files. Every grid in your results folder has a
-card. From the card you can:
+**3 · Outputs.** One row per grid in your results folder, newest first, with its AOI under
+the name. The grid being generated is the top row; its progress shows in the notification
+pill at the bottom right of the map, and **Cancel** stops it without leaving files. A grid
+that failed or was cancelled keeps its row: **Retry** (or **Generate**) runs it again with
+the same settings and AOI. Each grid has three icons, each with a tooltip:
 
-- show the grid on the map (the eye icon),
-- open its metadata,
-- reload its AOI into the AOI tab, to make another grid of the same area,
+- show or hide the grid on the map,
+- details: its folder, files and sizes, map preview and metadata,
 - delete its folder.
 
 ### Grid levels
@@ -51,7 +52,7 @@ Each grid gets its own folder in `~/module_results/fra_grid_generator/<name>/`:
 |---|---|
 | `<name>.gpkg` | The cells (GeoPackage). The metadata is embedded too. |
 | `<name>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | The cells (Shapefile), if selected. |
-| `<name>_plots` | Optional, r17 to r19: a 1 ha square (100 m × 100 m, north-up) at each cell centre, with the cell's fields except `area_ha`. A second layer in the GeoPackage and, with Shapefile, `<name>_plots.shp`. |
+| `<name>_centroids` | Optional, r17 to r19: the centroids, a 1 ha square (100 m × 100 m, north-up) at each cell's centroid, with the cell's fields except `area_ha`. A second layer in the GeoPackage and, with Shapefile, `<name>_centroids.shp`. |
 | `metadata.json` | How and when the grid was made: app and DGGRID versions, grid parameters, correction, AOI, files. |
 | `aoi.geojson` | The area of interest used. |
 
@@ -60,9 +61,9 @@ The cells are polygons in WGS84 (EPSG:4326), with these fields:
 | Field | Meaning |
 |---|---|
 | `global_id` | Cell ID in the ISEA3H grid of that level. At r17 it is the ID of the official FRA grid. |
-| `fra_r17_id` | Levels r18 to r21 only: the `global_id` of the FRA r17 cell that contains the cell's centre. |
+| `fra_r17_id` | Levels r18 to r21 only: the `global_id` of the FRA r17 cell that contains the cell's centroid. |
 | `level` | Grid level (17 to 21). |
-| `lon`, `lat` | Cell centre in WGS84 degrees. |
+| `lon`, `lat` | Cell centroid in WGS84 degrees. |
 | `area_ha` | Cell area in hectares, measured on the WGS84 ellipsoid. |
 
 A cell is kept when it touches your area. Cells along the edge therefore extend past the
@@ -83,7 +84,7 @@ script (dggridR):
    `lat + −(C1·sin 2φ + C2·sin 4φ) / R`, with C1 = 24.26, C2 = 53.70 and R = 6,371,007 m.
 4. Longitudes are never changed.
 5. The cells that touch the AOI are kept. Each cell belongs to exactly one tile (the one
-   holding its corrected centre), so there are no duplicates.
+   holding its corrected centroid), so there are no duplicates.
 
 For the R script, the FRA team checked this method against the official FRA grid on 192
 samples around the world: identical IDs, at most 5.4 m apart (median 2.4 m). The app
@@ -103,7 +104,7 @@ are an extension of the FRA method, not a validated product. The metadata record
 
 Aperture-3 cells do not nest: an r18 cell is not inside a single r17 cell, and r17 cell
 edges cut through finer cells. To link a finer cell to the FRA grid, use `fra_r17_id`: the
-FRA cell that contains its centre.
+FRA cell that contains its centroid.
 
 ### Limits and notes
 
@@ -119,5 +120,6 @@ FRA cell that contains its centre.
   differ by less than 1 %, depending on latitude.
 - **Map preview.** Each grid has a hidden preview file that lets the map draw it at any
   size. Cells show from zoom 6; zoom in further to see the individual hexagons of finer
-  levels. The 1 ha plots, when the grid has them, show from zoom 12. The preview is not
+  levels. The centroids, when the grid has them, are a separate layer that shows from
+  zoom 12. The preview is not
   one of the output files.

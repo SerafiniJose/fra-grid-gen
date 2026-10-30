@@ -67,9 +67,9 @@
     "shp": "Shapefile (.shp)",
     "shp_hint": "Máx. 2 GB por ficheiro (~4M células), nomes de campos de 10 caracteres, sem metadados incorporados.",
     "shp_disabled": "Shapefile não está disponível acima de 4 000 000 de células estimadas.",
-    "plots": "Adicionar uma parcela de 1 ha no centro de cada célula",
-    "plots_hint": "Um quadrado de 100 m × 100 m, escrito como segunda camada / ficheiro: <nome>_plots.",
-    "plots_disabled": "As parcelas de 1 ha só estão disponíveis de r17 a r19: as células mais finas são menores do que a parcela.",
+    "centroids": "Adicionar centroides (1 ha)",
+    "centroids_hint": "Um quadrado de 100 m × 100 m no centroide de cada célula, escrito como segunda camada / ficheiro: <nome>_centroids.",
+    "centroids_disabled": "Os centroides só estão disponíveis de r17 a r19: as células mais finas são menores do que o quadrado de 1 ha.",
     "formats_empty": "Escolha pelo menos um formato.",
     "generate": "Gerar grelha",
     "cancel": "Cancelar",
@@ -90,43 +90,39 @@
   },
   "outputs": {
     "empty": "Ainda não há grelhas. Gere uma no separador Grelha.",
-    "cells": "{cells} células",
     "show": "Mostrar no mapa",
     "hide": "Remover do mapa",
-    "metadata": "Metadados",
-    "reload_aoi": "Recarregar AOI",
-    "reload_failed": "Não foi possível recarregar a AOI de {name}: a sua origem já não existe.",
     "delete_title": "Eliminar a grelha?",
     "delete_message": "A pasta {name} e todos os seus ficheiros ({size}) serão eliminados. Esta ação não pode ser desfeita.",
     "deleted": "{name} eliminada.",
     "not_a_grid": "{name} já não é uma pasta de grelha criada por esta aplicação. A lista foi atualizada.",
     "delete_failed": "Não foi possível eliminar {name}: {error}",
     "busy": "Esta grelha está a ser gerada.",
-    "aoi": "AOI",
-    "run": "Execução",
     "preview": "Pré-visualização no mapa",
-    "points": "{n} pontos",
-    "tiles": "{n} mosaicos",
-    "total": "{size} no total",
     "preview_pmtiles": "PMTiles · zoom {min}–{max}",
     "preview_geojson": "Desenhada célula a célula (sem ficheiro de pré-visualização)",
     "preview_none": "Não disponível (sem ficheiro de pré-visualização, mais de 50 000 células)",
-    "job": {
-      "steps": {
-        "cells": "A gerar as células",
-        "shp": "A converter para Shapefile",
-        "preview": "A criar a pré-visualização no mapa (PMTiles)",
-        "finish": "A escrever ficheiros e metadados"
-      },
-      "preview_feed": "A enviar células para o tippecanoe · {pct}%",
-      "preview_tiles": "O tippecanoe está a cortar mosaicos vetoriais · {pct}%",
-      "preview_about": "Um ficheiro PMTiles oculto de mosaicos vetoriais que permite ao mapa desenhar a grelha em qualquer tamanho. Não é um dos ficheiros de saída.",
-      "elapsed": "Decorrido {time}",
-      "remaining": "faltam cerca de {time}",
-      "estimating": "a estimar o tempo restante…",
-      "dismiss": "Dispensar",
-      "ready": "Pronto",
-      "finished": "Concluído em {time}"
+    "col": {
+      "grid": "Grelha",
+      "level": "Nível",
+      "cells": "Células",
+      "status": "Estado",
+      "actions": "Ações"
+    },
+    "ready": "Pronta",
+    "cancel": "Cancelar",
+    "retry": "Repetir",
+    "generate": "Gerar",
+    "tip": {
+      "cancel": "Parar a geração. Nada é escrito.",
+      "retry": "Gerar de novo com as mesmas definições: {settings}",
+      "wait_ready": "Disponível quando a grelha estiver pronta",
+      "wait_finish": "Aguarde que a grelha termine",
+      "no_map": "Nada para mostrar: a grelha não foi escrita",
+      "no_details": "Sem detalhes: a grelha não foi escrita",
+      "dismiss": "Remover da lista",
+      "details": "Detalhes: ficheiros, AOI e execução",
+      "delete": "Eliminar esta grelha…"
     }
   },
   "metadata": {
@@ -137,6 +133,8 @@
     "aoi": "AOI",
     "run": "Execução",
     "correction": "Correção",
-    "raw": "JSON bruto"
+    "raw": "JSON bruto",
+    "files": "Ficheiros",
+    "total": "Total, com a pré-visualização no mapa"
   }
 }

@@ -17,13 +17,15 @@ salida y elige los formatos:
 Luego pulsa **Generar grilla**. Por encima de 2.000.000 de celdas estimadas, la aplicación
 pide confirmación antes de empezar.
 
-**3 · Resultados.** El trabajo en curso muestra cada paso, el tiempo transcurrido y el
-tiempo restante. Puedes cancelarlo; una ejecución cancelada no deja archivos. Cada grilla
-de tu carpeta de resultados tiene una tarjeta. Desde la tarjeta puedes:
+**3 · Resultados.** Una fila por grilla de tu carpeta de resultados, la más reciente
+primero, con su AOI bajo el nombre. La grilla que se está generando es la primera fila; su
+avance aparece en la píldora de notificaciones, abajo a la derecha del mapa, y **Cancelar**
+la detiene sin dejar archivos. Una grilla que falló o se canceló conserva su fila:
+**Reintentar** (o **Generar**) la vuelve a generar con la misma configuración y AOI. Cada
+grilla tiene tres iconos, cada uno con su descripción:
 
-- mostrar la grilla en el mapa (el icono del ojo),
-- abrir sus metadatos,
-- recargar su AOI en la pestaña AOI, para generar otra grilla de la misma zona,
+- mostrar u ocultar la grilla en el mapa,
+- detalles: su carpeta, archivos y tamaños, vista en el mapa y metadatos,
 - borrar su carpeta.
 
 ### Niveles de la grilla
@@ -51,7 +53,7 @@ Cada grilla tiene su propia carpeta en `~/module_results/fra_grid_generator/<nom
 |---|---|
 | `<nombre>.gpkg` | Las celdas (GeoPackage). También incluye los metadatos. |
 | `<nombre>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | Las celdas (Shapefile), si lo elegiste. |
-| `<nombre>_plots` | Opcional, r17 a r19: un cuadrado de 1 ha (100 m × 100 m, orientado al norte) en el centro de cada celda, con los campos de la celda salvo `area_ha`. Una segunda capa en el GeoPackage y, con Shapefile, `<nombre>_plots.shp`. |
+| `<nombre>_centroids` | Opcional, r17 a r19: los centroides, un cuadrado de 1 ha (100 m × 100 m, orientado al norte) en el centroide de cada celda, con los campos de la celda salvo `area_ha`. Una segunda capa en el GeoPackage y, con Shapefile, `<nombre>_centroids.shp`. |
 | `metadata.json` | Cómo y cuándo se generó la grilla: versiones de la app y de DGGRID, parámetros de la grilla, corrección, AOI, archivos. |
 | `aoi.geojson` | La zona de interés utilizada. |
 
@@ -60,9 +62,9 @@ Las celdas son polígonos en WGS84 (EPSG:4326), con estos campos:
 | Campo | Significado |
 |---|---|
 | `global_id` | ID de la celda en la grilla ISEA3H de ese nivel. En r17 es el ID de la grilla oficial FRA. |
-| `fra_r17_id` | Solo niveles r18 a r21: el `global_id` de la celda FRA r17 que contiene el centro de la celda. |
+| `fra_r17_id` | Solo niveles r18 a r21: el `global_id` de la celda FRA r17 que contiene el centroide de la celda. |
 | `level` | Nivel de la grilla (17 a 21). |
-| `lon`, `lat` | Centro de la celda en grados WGS84. |
+| `lon`, `lat` | Centroide de la celda en grados WGS84. |
 | `area_ha` | Área de la celda en hectáreas, medida sobre el elipsoide WGS84. |
 
 Se conserva toda celda que toca tu zona, por lo que las celdas del borde sobresalen del
@@ -83,7 +85,7 @@ script R de FRA (dggridR):
    `lat + −(C1·sin 2φ + C2·sin 4φ) / R`, con C1 = 24,26, C2 = 53,70 y R = 6.371.007 m.
 4. Las longitudes no cambian nunca.
 5. Se conservan las celdas que tocan la zona. Cada celda pertenece a un solo bloque (el
-   que contiene su centro corregido), así que no hay duplicados.
+   que contiene su centroide corregido), así que no hay duplicados.
 
 Para el script R, el equipo de FRA comparó este método con la grilla oficial FRA en 192
 muestras de todo el mundo: IDs idénticos y una diferencia máxima de 5,4 m (mediana
@@ -104,7 +106,7 @@ validado. Los metadatos lo registran: `correction.validated_at_levels` es `[17]`
 
 Las celdas de apertura 3 no se anidan: una celda r18 no está dentro de una sola celda r17,
 y los bordes de las celdas r17 cortan las celdas más finas. Para vincular una celda fina
-con la grilla FRA, usa `fra_r17_id`: la celda FRA que contiene su centro.
+con la grilla FRA, usa `fra_r17_id`: la celda FRA que contiene su centroide.
 
 ### Límites y notas
 
@@ -122,5 +124,6 @@ con la grilla FRA, usa `fra_r17_id`: la celda FRA que contiene su centro.
   diferencia es menor al 1 %, según la latitud.
 - **Vista previa del mapa.** Cada grilla tiene un archivo oculto de vista previa que permite
   dibujarla en el mapa a cualquier tamaño. Las celdas se ven desde el zoom 6; acerca más
-  para ver los hexágonos de los niveles más finos. Las parcelas de 1 ha, si la grilla las
-  tiene, se ven desde el zoom 12. La vista previa no es uno de los archivos de salida.
+  para ver los hexágonos de los niveles más finos. Los centroides, si la grilla los
+  tiene, son una capa aparte que se ve desde el zoom 12. La vista previa no es uno de los
+  archivos de salida.

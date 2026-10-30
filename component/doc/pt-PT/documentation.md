@@ -17,13 +17,15 @@ e escolha os formatos:
 Depois prima **Gerar grelha**. Acima de 2 000 000 de células estimadas, a aplicação pede
 primeiro uma confirmação.
 
-**3 · Resultados.** A tarefa em curso mostra cada passo, o tempo decorrido e o tempo
-restante. Pode cancelá-la; uma execução cancelada não deixa ficheiros. Cada grelha da sua
-pasta de resultados tem um cartão. A partir do cartão pode:
+**3 · Resultados.** Uma linha por grelha da sua pasta de resultados, a mais recente
+primeiro, com a AOI por baixo do nome. A grelha a ser gerada é a primeira linha; o progresso
+aparece na pílula de notificações, em baixo à direita do mapa, e **Cancelar** para-a sem
+deixar ficheiros. Uma grelha que falhou ou foi cancelada mantém a sua linha: **Repetir** (ou
+**Gerar**) gera-a de novo com as mesmas definições e AOI. Cada grelha tem três ícones,
+cada um com a sua descrição:
 
-- mostrar a grelha no mapa (o ícone do olho),
-- abrir os seus metadados,
-- recarregar a sua AOI no separador AOI, para gerar outra grelha da mesma área,
+- mostrar ou ocultar a grelha no mapa,
+- detalhes: a pasta, os ficheiros e tamanhos, a pré-visualização no mapa e os metadados,
 - eliminar a sua pasta.
 
 ### Níveis da grelha
@@ -52,7 +54,7 @@ Cada grelha tem a sua própria pasta em `~/module_results/fra_grid_generator/<no
 |---|---|
 | `<nome>.gpkg` | As células (GeoPackage). Os metadados também vão incorporados. |
 | `<nome>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | As células (Shapefile), se selecionado. |
-| `<nome>_plots` | Opcional, r17 a r19: um quadrado de 1 ha (100 m × 100 m, orientado a norte) no centro de cada célula, com os campos da célula exceto `area_ha`. Uma segunda camada no GeoPackage e, com Shapefile, `<nome>_plots.shp`. |
+| `<nome>_centroids` | Opcional, r17 a r19: os centroides, um quadrado de 1 ha (100 m × 100 m, orientado a norte) no centroide de cada célula, com os campos da célula exceto `area_ha`. Uma segunda camada no GeoPackage e, com Shapefile, `<nome>_centroids.shp`. |
 | `metadata.json` | Como e quando a grelha foi criada: versões da aplicação e do DGGRID, parâmetros da grelha, correção, AOI, ficheiros. |
 | `aoi.geojson` | A área de interesse utilizada. |
 
@@ -61,9 +63,9 @@ As células são polígonos em WGS84 (EPSG:4326), com estes campos:
 | Campo | Significado |
 |---|---|
 | `global_id` | ID da célula na grelha ISEA3H desse nível. Em r17 é o ID da grelha FRA oficial. |
-| `fra_r17_id` | Apenas níveis r18 a r21: o `global_id` da célula FRA r17 que contém o centro da célula. |
+| `fra_r17_id` | Apenas níveis r18 a r21: o `global_id` da célula FRA r17 que contém o centroide da célula. |
 | `level` | Nível da grelha (17 a 21). |
-| `lon`, `lat` | Centro da célula em graus WGS84. |
+| `lon`, `lat` | Centroide da célula em graus WGS84. |
 | `area_ha` | Área da célula em hectares, medida no elipsoide WGS84. |
 
 Uma célula é mantida quando toca a sua área. As células ao longo do limite estendem-se,
@@ -84,7 +86,7 @@ R do FRA (dggridR):
    `lat + −(C1·sin 2φ + C2·sin 4φ) / R`, com C1 = 24,26, C2 = 53,70 e R = 6 371 007 m.
 4. As longitudes nunca são alteradas.
 5. As células que tocam a AOI são mantidas. Cada célula pertence a exatamente um mosaico
-   (o que contém o seu centro corrigido), por isso não há duplicados.
+   (o que contém o seu centroide corrigido), por isso não há duplicados.
 
 Para o script R, a equipa FRA verificou este método face à grelha FRA oficial em 192
 amostras em todo o mundo: IDs idênticos, no máximo 5,4 m de diferença (mediana 2,4 m). A
@@ -104,7 +106,7 @@ validado. Os metadados registam isto: `correction.validated_at_levels` é `[17]`
 
 As células de abertura 3 não se encaixam: uma célula r18 não está dentro de uma única
 célula r17, e os limites das células r17 atravessam as células mais finas. Para ligar uma
-célula mais fina à grelha FRA, use `fra_r17_id`: a célula FRA que contém o seu centro.
+célula mais fina à grelha FRA, use `fra_r17_id`: a célula FRA que contém o seu centroide.
 
 ### Limites e notas
 
@@ -120,6 +122,7 @@ célula mais fina à grelha FRA, use `fra_r17_id`: a célula FRA que contém o s
   menos de 1 %, consoante a latitude.
 - **Pré-visualização no mapa.** Cada grelha tem um ficheiro de pré-visualização oculto que
   permite ao mapa desenhá-la em qualquer tamanho. As células aparecem a partir do zoom 6;
-  aproxime mais para ver os hexágonos individuais dos níveis mais finos. As parcelas de
-  1 ha, quando a grelha as tem, aparecem a partir do zoom 12. A pré-visualização não é um
+  aproxime mais para ver os hexágonos individuais dos níveis mais finos. Os centroides,
+  quando a grelha os tem, são uma camada à parte que aparece a partir
+  do zoom 12. A pré-visualização não é um
   dos ficheiros de saída.

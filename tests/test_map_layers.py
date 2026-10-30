@@ -7,10 +7,14 @@ from shapely.geometry import box
 from component.scripts import map_layers as ml
 
 
-def _gpkg(tmp_path):
+def _gpkg(tmp_path, centroids=False):
     path = tmp_path / "g.gpkg"
     frame = gpd.GeoDataFrame({"global_id": [1, 2]}, geometry=[box(0, 0, 1, 1), box(1, 0, 2, 1)], crs="EPSG:4326")
     pyogrio.write_dataframe(frame, path, layer="g", driver="GPKG")
+    if centroids:
+        squares = gpd.GeoDataFrame({"global_id": [1, 2]}, geometry=[box(0.4, 0.4, 0.6, 0.6), box(1.4, 0.4, 1.6, 0.6)],
+                                   crs="EPSG:4326")
+        pyogrio.write_dataframe(squares, path, layer="g_centroids", driver="GPKG")
     return path
 
 
@@ -43,19 +47,21 @@ def test_draw_control_hidden_off_the_aoi_tab_and_restored():
     assert hidden is False and m.dc in m.controls
 
 
-def _plan_folder(tmp_path, *, cells=2, preview=True, pmtiles=True):
-    _gpkg(tmp_path)
+def _plan_folder(tmp_path, *, cells=2, preview=True, pmtiles=True, centroids=False):
+    _gpkg(tmp_path, centroids)
     if pmtiles:
         (tmp_path / ".preview.pmtiles").write_bytes(b"PMTiles\x03")
     meta = {"run": {"cell_count": cells, "formats": ["gpkg"]},
-            "preview": {"file": ".preview.pmtiles", "minzoom": 10, "maxzoom": 13} if preview else None}
+            "preview": {"file": ".preview.pmtiles", "minzoom": 10, "maxzoom": 13} if preview else None,
+            "centroids": {"layer": "g_centroids", "side_m": 100.0} if centroids else None}
     return meta
 
 
 def test_plan_prefers_pmtiles_and_keeps_the_geojson_fallback(tmp_path):
     plan = ml.plan_preview(tmp_path, "g", _plan_folder(tmp_path))
     assert plan.pmtiles == tmp_path / ".preview.pmtiles" and (plan.minzoom, plan.maxzoom) == (10, 13)
-    assert plan.vector == (tmp_path / "g.gpkg", "g") and plan.available
+    assert plan.vector == (tmp_path / "g.gpkg", "g") and plan.available and not plan.centroids
+    assert ml.plan_preview(tmp_path, "g", _plan_folder(tmp_path, centroids=True)).centroids
 
 
 def test_plan_large_grid_only_via_pmtiles(tmp_path):
@@ -74,14 +80,29 @@ def test_plan_ignores_missing_file_and_foreign_names(tmp_path):
     assert ml.plan_preview(tmp_path, "g", {}).available is False  # old/odd metadata
 
 
-def test_preview_style_has_scalar_cell_and_plot_layers():
-    style = ml.preview_style("http://x/pmtiles?filePath=/a/.preview.pmtiles", "#76591e")
+def test_preview_style_draws_one_source_layer_with_scalar_paint():
+    url = "http://x/pmtiles?filePath=/a/.preview.pmtiles"
+    style = ml.preview_style(url, "#76591e")
     assert style["sources"]["grid"]["url"].endswith(".pmtiles")
-    cells, plots = style["layers"]
+    [cells] = style["layers"]
     assert cells["type"] == "line" and cells["source-layer"] == "cells"
     assert cells["paint"] == {"line-color": "#76591e", "line-width": 1}
-    assert plots["type"] == "line" and plots["source-layer"] == "plots"
-    assert plots["paint"] == cells["paint"]
+    [centroids] = ml.preview_style(url, "#76591e", "centroids")["layers"]
+    assert centroids["source-layer"] == "centroids" and centroids["paint"] == cells["paint"]
+
+
+def test_centroids_source_sits_beside_the_cells(tmp_path):
+    assert ml.centroids_source((tmp_path / "g.gpkg", "g"), "g") == (tmp_path / "g.gpkg", "g_centroids")
+    assert ml.centroids_source((tmp_path / "g.shp", "g"), "g") == (tmp_path / "g_centroids.shp", "g_centroids")
+
+
+def test_geojson_preview_puts_the_centroids_on_their_own_layer(tmp_path):
+    m = FakeMap()
+    plan = ml.plan_preview(tmp_path, "g", _plan_folder(tmp_path, centroids=True, pmtiles=False))
+    assert ml.show_preview(m, plan, name="g") is None
+    assert [lyr.key for lyr in m.layers] == [ml.GRID_LAYER_KEY, ml.CENTROIDS_LAYER_KEY]
+    assert m.find_layer(ml.CENTROIDS_LAYER_KEY).name == "g centroids"
+    assert ml.remove_grid(m) is True and m.layers == []
 
 
 def test_pmtiles_layer_sends_data_zoom_options():
@@ -105,7 +126,7 @@ def test_show_preview_falls_back_to_geojson_when_pmtiles_fails(tmp_path, monkeyp
         ml.show_preview(m, big, name="g")
 
 
-def test_show_grid_pmtiles_adds_outline_and_aoi_and_zooms(tmp_path, monkeypatch):
+def _fake_tile_client(monkeypatch):
     import vectortileserver.client as vc
 
     class FakeClient:
@@ -116,6 +137,10 @@ def test_show_grid_pmtiles_adds_outline_and_aoi_and_zooms(tmp_path, monkeypatch)
             pass
 
     monkeypatch.setattr(vc, "TileClient", FakeClient)
+
+
+def test_show_grid_pmtiles_adds_outline_and_aoi_and_zooms(tmp_path, monkeypatch):
+    _fake_tile_client(monkeypatch)
     aoi = tmp_path / "aoi.geojson"
     gpd.GeoDataFrame(geometry=[box(0, 0, 1, 1)], crs="EPSG:4326").to_file(aoi, driver="GeoJSON")
     m = FakeMap()
@@ -131,6 +156,19 @@ def test_show_grid_pmtiles_adds_outline_and_aoi_and_zooms(tmp_path, monkeypatch)
     light, dark = grid.theme_style[False], grid.theme_style[True]
     assert light["layers"][0]["paint"]["line-color"] != dark["layers"][0]["paint"]["line-color"]
     assert set(m.find_layer(ml.AOI_LAYER_KEY).theme_style) == {True, False}
+    assert ml.remove_grid(m) is True and m.layers == []
+
+
+def test_pmtiles_preview_puts_the_centroids_on_their_own_layer(tmp_path, monkeypatch):
+    _fake_tile_client(monkeypatch)
+    m = FakeMap()
+    plan = ml.plan_preview(tmp_path, "g", _plan_folder(tmp_path, centroids=True))
+    ml.show_preview(m, plan, name="g")
+    grid, centroids = m.find_layer(ml.GRID_LAYER_KEY), m.find_layer(ml.CENTROIDS_LAYER_KEY)
+    assert [lyr["source-layer"] for lyr in grid.style["layers"]] == ["cells"]
+    assert [lyr["source-layer"] for lyr in centroids.style["layers"]] == ["centroids"]
+    assert centroids.name == "g centroids" and centroids.max_data_zoom == 13
+    assert centroids.theme_style[True]["layers"][0]["source-layer"] == "centroids"
     assert ml.remove_grid(m) is True and m.layers == []
 
 

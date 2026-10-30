@@ -21,17 +21,14 @@ class JobState:
     status: str = "idle"  # idle | running | done | failed | cancelled
     name: str = ""
     level: int = 0
-    done: int = 0
-    total: int = 0
-    cells: int = 0
     message: str = ""
     title: str = ""  # "r17 grid · <AOI>", resolved in the click handler
     formats: tuple = ()
-    started_at: float = 0.0  # time.monotonic()
-    step: str = ""  # job_progress.STEPS
-    step_fraction: object = None  # 0..1, or None when the step cannot measure itself
-    step_started_at: float = 0.0
-    finished_at: float = 0.0  # set when the job is done
+    request: object = None  # the BuildRequest it runs: Retry starts it again
+
+    @property
+    def aoi_label(self) -> str:
+        return getattr(getattr(self.request, "aoi", None), "label", "") or ""
 
     @property
     def running(self) -> bool:
@@ -46,13 +43,12 @@ class AppState:
         self.aoi_info = solara.reactive(None, equals=_same)  # AoiInfo (geometry ready)
         self.aoi_error = solara.reactive(None)  # (key, detail) or None
         self.aoi_resolving = solara.reactive(False)  # our worker builds AoiInfo
-        self.aoi_spec = solara.reactive(None)  # AoiView's two-way AoiSpec: set it to reload an AOI
         # Grid tab
         self.level = solara.reactive(g.FRA_LEVEL)
         self.out_name = solara.reactive("")
         self.name_edited = solara.reactive(False)  # user typed: stop auto-naming
         self.formats = solara.reactive(frozenset({"gpkg"}))
-        self.plots = solara.reactive(False)  # add the 1 ha centre plots
+        self.centroids = solara.reactive(False)  # add the centroids (1 ha squares)
         # Job
         self.job = solara.reactive(JobState())
         self.cancel_event = solara.reactive(None, equals=_same)
@@ -60,7 +56,6 @@ class AppState:
         # Outputs tab and navigation
         self.outputs_signal = solara.reactive(0)  # bump to re-list the results folder
         self.preview_name = solara.reactive(None)  # grid shown on the map
-        self.open_output = solara.reactive(None)  # name of the one opened card in the grid list
         self.preview_minzoom = solara.reactive(None)  # its PMTiles min zoom; None for GeoJSON
         self.map_zoom = solara.reactive(None)  # the shared map's zoom, for the zoom hint
         self.active_tab = solara.reactive(0)

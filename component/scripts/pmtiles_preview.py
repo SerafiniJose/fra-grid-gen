@@ -112,11 +112,11 @@ def _kill(proc) -> None:
 
 
 def build_preview(gpkg, layer, out_path, *, minzoom, maxzoom, tmp_dir, cancel=None, chunk=CHUNK,
-                  on_progress=None, plots_layer=None) -> Path:
+                  on_progress=None, centroids_layer=None) -> Path:
     """Write ``out_path`` (a PMTiles archive of ``layer``'s cell outlines).
 
-    ``plots_layer`` (a GPKG layer of 1 ha plots) goes into the same archive as
-    the ``g.PREVIEW_PLOTS_LAYER`` source-layer, from ``g.PREVIEW_PLOTS_MINZOOM``.
+    ``centroids_layer`` (a GPKG layer of 1 ha centroid squares) goes into the same archive as
+    the ``g.PREVIEW_CENTROIDS_LAYER`` source-layer, from ``g.PREVIEW_CENTROIDS_MINZOOM``.
 
     Raises ``TippecanoeUnavailable``, ``PreviewFailed`` or ``PreviewCancelled``;
     a partial archive is removed on any failure.
@@ -125,8 +125,10 @@ def build_preview(gpkg, layer, out_path, *, minzoom, maxzoom, tmp_dir, cancel=No
     if exe is None:
         raise TippecanoeUnavailable("tippecanoe not found on PATH or next to the interpreter")
     gpkg, out_path, tmp_dir = Path(gpkg), Path(out_path), Path(tmp_dir).absolute()
-    plots_zoom = min(g.PREVIEW_PLOTS_MINZOOM, maxzoom)
-    sources = [(layer, None, None)] + ([(plots_layer, g.PREVIEW_PLOTS_LAYER, plots_zoom)] if plots_layer else [])
+    centroids_zoom = min(g.PREVIEW_CENTROIDS_MINZOOM, maxzoom)
+    sources = [(layer, None, None)]
+    if centroids_layer:
+        sources.append((centroids_layer, g.PREVIEW_CENTROIDS_LAYER, centroids_zoom))
     total = max(sum(pyogrio.read_info(gpkg, layer=src)["features"] for src, _, _ in sources), 1)
     milestones = _Milestones(on_progress)
     tail = []  # last stderr lines, for the error message

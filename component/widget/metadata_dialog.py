@@ -1,4 +1,4 @@
-"""Read-only view of a grid's metadata.json, with its absolute folder path."""
+"""A grid's details: folder, files and sizes, map preview, then its metadata.json."""
 
 import json
 
@@ -6,6 +6,7 @@ import reacton.ipyvuetify as rv
 import solara
 
 from component.i18n import t
+from component.scripts.writers import human_size
 
 _MONO = "display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; overflow-wrap: anywhere;"
 
@@ -20,6 +21,28 @@ def _fmt(value) -> str:
     if isinstance(value, int):
         return f"{value:,}"
     return str(value)
+
+
+def preview_line(plan) -> str:
+    if plan is None:
+        return "—"
+    if plan.pmtiles is not None:
+        return t("outputs.preview_pmtiles", min=plan.minzoom, max=plan.maxzoom)
+    if plan.vector is not None:
+        return t("outputs.preview_geojson")
+    return t("outputs.preview_none")
+
+
+def _table(rows):
+    with rv.SimpleTable(dense=True):
+        with rv.Html(tag="tbody"):
+            for label, value in rows:
+                rv.Html(tag="tr", children=[rv.Html(tag="td", children=[label]),
+                                            rv.Html(tag="td", children=[value])])
+
+
+def _heading(text):
+    solara.Text(text, style="display: block; font-weight: 600; margin-top: 12px;")
 
 
 def metadata_sections(record: dict) -> list:
@@ -44,7 +67,7 @@ def metadata_sections(record: dict) -> list:
 
 
 @solara.component
-def MetadataDialog(output, on_close):
+def MetadataDialog(output, on_close, plan=None):
     open_ = output is not None
     with rv.Dialog(v_model=open_, on_v_model=lambda v: None if v else on_close(), max_width="560px", scrollable=True):
         if output is None:
@@ -55,13 +78,13 @@ def MetadataDialog(output, on_close):
             with rv.CardText():
                 solara.Text(t("metadata.folder"), style="display: block; font-weight: 600;")
                 solara.Text(str(output.folder), style=_MONO + "user-select: all;")
+                _heading(t("metadata.files"))
+                _table([*((name, human_size(size)) for name, size in output.files),
+                        (t("outputs.preview"), preview_line(plan)),
+                        (t("metadata.total"), human_size(output.size_bytes))])
                 for key, items in metadata_sections(output.metadata):
-                    solara.Text(t(key), style="display: block; font-weight: 600; margin-top: 12px;")
-                    with rv.SimpleTable(dense=True):
-                        with rv.Html(tag="tbody"):
-                            for label, value in items:
-                                rv.Html(tag="tr", children=[rv.Html(tag="td", children=[label]),
-                                                            rv.Html(tag="td", children=[value])])
+                    _heading(t(key))
+                    _table(items)
                 with rv.ExpansionPanels(flat=True, class_="mt-3"):
                     with rv.ExpansionPanel():
                         rv.ExpansionPanelHeader(children=[t("metadata.raw")])

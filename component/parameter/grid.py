@@ -13,13 +13,13 @@ LEVELS = tuple(range(MIN_LEVEL, MAX_LEVEL + 1))
 WARN_CELLS = 2_000_000
 BLOCK_CELLS = 10_000_000
 SHP_MAX_CELLS = 4_000_000
-# Optional 1 ha square plot at each cell centre (FRA RSS interpretation plot):
+# Optional centroids: a 1 ha square at each cell's centroid (FRA RSS interpretation plot):
 # north-up, 100 m sides on the WGS84 ellipsoid, written to the layer/file
-# "<name>_plots". Only levels whose hexagon holds the square: inradius >= the
+# "<name>_centroids". Only levels whose hexagon holds the square: inradius >= the
 # square's half-diagonal (70.7 m); r20 (65 m) and r21 are too small.
-PLOT_SIDE_M = 100.0
-PLOT_LEVELS = (17, 18, 19)
-PLOTS_SUFFIX = "_plots"
+CENTROID_SIDE_M = 100.0
+CENTROID_LEVELS = (17, 18, 19)
+CENTROIDS_SUFFIX = "_centroids"
 # GeoJSON map preview cap: grids without a PMTiles preview (older folders,
 # tippecanoe missing at build time) are drawn cell by cell in the browser.
 PREVIEW_MAX_CELLS = 50_000
@@ -27,10 +27,10 @@ PREVIEW_MAX_CELLS = 50_000
 # PMTiles map preview built with every grid (hidden; not a deliverable).
 PREVIEW_FILE = ".preview.pmtiles"
 PREVIEW_LAYER = "cells"  # tippecanoe -l name = MapLibre source-layer
-# The 1 ha plots share the archive as a second source-layer, from zoom 12
-# (~2.5 px a plot): below that tippecanoe would draw them as merged blotches.
-PREVIEW_PLOTS_LAYER = "plots"
-PREVIEW_PLOTS_MINZOOM = 12
+# The centroids share the archive as a second source-layer, from zoom 12
+# (~2.5 px a centroid): below that tippecanoe would draw them as merged blotches.
+PREVIEW_CENTROIDS_LAYER = "centroids"
+PREVIEW_CENTROIDS_MINZOOM = 12
 # Web-map zoom range per level. Every level starts at zoom 6 (country scale):
 # where a cell is under a pixel, tippecanoe merges cells into stand-in squares
 # (r21 shows real hexagons from z9, r17 from z6). Nothing is drawn below the min

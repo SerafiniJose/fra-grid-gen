@@ -18,13 +18,15 @@ nom de sortie et choisissez les formats :
 Appuyez ensuite sur **Générer la grille**. Au-delà de 2 000 000 cellules estimées,
 l'application demande d'abord une confirmation.
 
-**3 · Résultats.** La tâche en cours affiche chaque étape, le temps écoulé et le temps
-restant. Vous pouvez l'annuler ; une exécution annulée ne laisse aucun fichier. Chaque
-grille de votre dossier de résultats a une carte. Depuis la carte, vous pouvez :
+**3 · Résultats.** Une ligne par grille de votre dossier de résultats, la plus récente
+en premier, avec son AOI sous le nom. La grille en cours de génération est la première
+ligne ; sa progression s'affiche dans la pastille de notifications, en bas à droite de la
+carte, et **Annuler** l'arrête sans laisser de fichiers. Une grille en échec ou annulée garde
+sa ligne : **Réessayer** (ou **Générer**) la relance avec les mêmes paramètres et la même
+AOI. Chaque grille a trois icônes, chacune avec une info-bulle :
 
-- afficher la grille sur la carte (l'icône en forme d'œil),
-- ouvrir ses métadonnées,
-- recharger son AOI dans l'onglet AOI, pour créer une autre grille de la même zone,
+- afficher ou masquer la grille sur la carte,
+- détails : son dossier, ses fichiers et leur taille, l'aperçu cartographique et les métadonnées,
 - supprimer son dossier.
 
 ### Niveaux de grille
@@ -53,7 +55,7 @@ Chaque grille a son propre dossier dans `~/module_results/fra_grid_generator/<no
 |---|---|
 | `<nom>.gpkg` | Les cellules (GeoPackage). Les métadonnées y sont aussi intégrées. |
 | `<nom>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | Les cellules (Shapefile), si sélectionné. |
-| `<nom>_plots` | Optionnel, r17 à r19 : un carré de 1 ha (100 m × 100 m, orienté au nord) au centre de chaque cellule, avec les champs de la cellule sauf `area_ha`. Une deuxième couche dans le GeoPackage et, avec Shapefile, `<nom>_plots.shp`. |
+| `<nom>_centroids` | Optionnel, r17 à r19 : les centroïdes, un carré de 1 ha (100 m × 100 m, orienté au nord) sur le centroïde de chaque cellule, avec les champs de la cellule sauf `area_ha`. Une deuxième couche dans le GeoPackage et, avec Shapefile, `<nom>_centroids.shp`. |
 | `metadata.json` | Comment et quand la grille a été créée : versions de l'application et de DGGRID, paramètres de la grille, correction, AOI, fichiers. |
 | `aoi.geojson` | La zone d'intérêt utilisée. |
 
@@ -62,9 +64,9 @@ Les cellules sont des polygones en WGS84 (EPSG:4326), avec ces champs :
 | Champ | Signification |
 |---|---|
 | `global_id` | ID de la cellule dans la grille ISEA3H de ce niveau. À r17, c'est l'ID de la grille FRA officielle. |
-| `fra_r17_id` | Niveaux r18 à r21 uniquement : le `global_id` de la cellule FRA r17 qui contient le centre de la cellule. |
+| `fra_r17_id` | Niveaux r18 à r21 uniquement : le `global_id` de la cellule FRA r17 qui contient le centroïde de la cellule. |
 | `level` | Niveau de grille (17 à 21). |
-| `lon`, `lat` | Centre de la cellule en degrés WGS84. |
+| `lon`, `lat` | Centroïde de la cellule en degrés WGS84. |
 | `area_ha` | Surface de la cellule en hectares, mesurée sur l'ellipsoïde WGS84. |
 
 Une cellule est conservée lorsqu'elle touche votre zone. Les cellules en bordure dépassent
@@ -85,7 +87,7 @@ script R de FRA (dggridR) :
    `lat + −(C1·sin 2φ + C2·sin 4φ) / R`, avec C1 = 24,26, C2 = 53,70 et R = 6 371 007 m.
 4. Les longitudes ne sont jamais modifiées.
 5. Les cellules qui touchent l'AOI sont conservées. Chaque cellule appartient à exactement
-   une tuile (celle qui contient son centre corrigé), il n'y a donc pas de doublons.
+   une tuile (celle qui contient son centroïde corrigé), il n'y a donc pas de doublons.
 
 Pour le script R, l'équipe FRA a vérifié cette méthode par rapport à la grille FRA
 officielle sur 192 échantillons dans le monde : ID identiques, au plus 5,4 m d'écart
@@ -108,7 +110,7 @@ de la méthode FRA, pas un produit validé. Les métadonnées l'indiquent :
 Les cellules d'ouverture 3 ne s'emboîtent pas : une cellule r18 n'est pas contenue dans
 une seule cellule r17, et les bords des cellules r17 traversent les cellules plus fines.
 Pour relier une cellule plus fine à la grille FRA, utilisez `fra_r17_id` : la cellule FRA
-qui contient son centre.
+qui contient son centroïde.
 
 ### Limites et remarques
 
@@ -127,5 +129,6 @@ qui contient son centre.
 - **Aperçu cartographique.** Chaque grille a un fichier d'aperçu caché qui permet à la
   carte de la dessiner à n'importe quelle taille. Les cellules s'affichent à partir du
   zoom 6 ; zoomez davantage pour voir les hexagones individuels des niveaux plus fins. Les
-  placettes de 1 ha, si la grille en a, s'affichent à partir du zoom 12. L'aperçu n'est
+  centroïdes, si la grille en a, sont une couche à part qui s'affiche
+  à partir du zoom 12. L'aperçu n'est
   pas un des fichiers de sortie.

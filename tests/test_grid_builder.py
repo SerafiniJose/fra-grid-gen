@@ -174,45 +174,45 @@ def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
     assert md.read_gpkg_metadata(folder / "chaco17.gpkg", "chaco17") == record
     shp = pyogrio.read_dataframe(folder / "chaco17.shp")
     assert len(shp) == 330
-    assert record["plots"] is None
+    assert record["centroids"] is None
 
 
 @needs_engine
-def test_plots_layer_holds_one_ha_square_per_cell(results_root, chaco_aoi):
-    res = gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "c17", formats=("gpkg", "shp"), plots=True))
+def test_centroids_layer_holds_one_ha_square_per_cell(results_root, chaco_aoi):
+    res = gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "c17", formats=("gpkg", "shp"), centroids=True))
     cells = pyogrio.read_dataframe(res.folder / "c17.gpkg", layer="c17")
-    plots = pyogrio.read_dataframe(res.folder / "c17.gpkg", layer="c17_plots")
-    assert list(plots["global_id"]) == list(cells["global_id"]) and "area_ha" not in plots
-    assert shapely.contains(cells.geometry.values, plots.geometry.values).all()
-    assert np.allclose(gb._geodesic_area_ha(plots.geometry.values), 1.0, atol=0.001)
-    assert len(pyogrio.read_dataframe(res.folder / "c17_plots.shp")) == 330
-    assert md.read_metadata_json(res.folder)["plots"] == {"layer": "c17_plots", "side_m": 100.0}
+    centroids = pyogrio.read_dataframe(res.folder / "c17.gpkg", layer="c17_centroids")
+    assert list(centroids["global_id"]) == list(cells["global_id"]) and "area_ha" not in centroids
+    assert shapely.contains(cells.geometry.values, centroids.geometry.values).all()
+    assert np.allclose(gb._geodesic_area_ha(centroids.geometry.values), 1.0, atol=0.001)
+    assert len(pyogrio.read_dataframe(res.folder / "c17_centroids.shp")) == 330
+    assert md.read_metadata_json(res.folder)["centroids"] == {"layer": "c17_centroids", "side_m": 100.0}
 
 
 @needs_engine
-def test_plots_are_fed_to_the_map_preview(results_root, chaco_aoi, monkeypatch):
+def test_centroids_are_fed_to_the_map_preview(results_root, chaco_aoi, monkeypatch):
     seen = {}
 
     def fake(gpkg, layer, out, **k):
-        seen.update(layer=layer, plots_layer=k.get("plots_layer"))
+        seen.update(layer=layer, centroids_layer=k.get("centroids_layer"))
         raise pp.PreviewFailed("stop here")
 
     monkeypatch.setattr(pp, "build_preview", fake)
-    gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "pl", plots=True))
-    assert seen == {"layer": "pl", "plots_layer": "pl_plots"}
+    gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "pl", centroids=True))
+    assert seen == {"layer": "pl", "centroids_layer": "pl_centroids"}
     gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "np"))
-    assert seen["plots_layer"] is None
+    assert seen["centroids_layer"] is None
 
 
-def test_plot_squares_are_one_ha_and_cross_the_antimeridian():
-    squares = gb.plot_squares([0.0, 179.9999, -60.0], [0.0, 70.0, -22.3])
+def test_centroid_squares_are_one_ha_and_cross_the_antimeridian():
+    squares = gb.centroid_squares([0.0, 179.9999, -60.0], [0.0, 70.0, -22.3])
     assert np.allclose(gb._geodesic_area_ha(squares), 1.0, atol=0.001)
     assert shapely.bounds(squares[1])[2] > 180.0  # one square, not one spanning the globe
 
 
-def test_plots_rejected_on_levels_too_fine(results_root, chaco_aoi):
-    with pytest.raises(ValueError, match="1 ha plots"):
-        gb.build_grid(gb.BuildRequest(chaco_aoi, 20, "fine", plots=True))
+def test_centroids_rejected_on_levels_too_fine(results_root, chaco_aoi):
+    with pytest.raises(ValueError, match="Centroids need"):
+        gb.build_grid(gb.BuildRequest(chaco_aoi, 20, "fine", centroids=True))
 
 
 @needs_engine

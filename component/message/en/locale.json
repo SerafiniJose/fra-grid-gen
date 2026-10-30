@@ -67,9 +67,9 @@
     "shp": "Shapefile (.shp)",
     "shp_hint": "Max 2 GB per file (~4M cells), 10-character field names, no embedded metadata.",
     "shp_disabled": "Shapefile is unavailable above 4,000,000 estimated cells.",
-    "plots": "Add a 1 ha plot at each cell centre",
-    "plots_hint": "A 100 m × 100 m square, written as a second layer / file: <name>_plots.",
-    "plots_disabled": "1 ha plots are available for r17 to r19 only: finer cells are smaller than the plot.",
+    "centroids": "Add centroids (1 ha)",
+    "centroids_hint": "A 100 m × 100 m square at each cell's centroid, written as a second layer / file: <name>_centroids.",
+    "centroids_disabled": "Centroids are available for r17 to r19 only: finer cells are smaller than the 1 ha square.",
     "formats_empty": "Pick at least one format.",
     "generate": "Generate grid",
     "cancel": "Cancel",
@@ -90,43 +90,39 @@
   },
   "outputs": {
     "empty": "No grids yet. Generate one in the Grid tab.",
-    "cells": "{cells} cells",
     "show": "Show on map",
     "hide": "Remove from map",
-    "metadata": "Metadata",
-    "reload_aoi": "Reload AOI",
-    "reload_failed": "Could not reload the AOI of {name}: its source is gone.",
     "delete_title": "Delete grid?",
     "delete_message": "The folder {name} and all its files ({size}) will be deleted. This cannot be undone.",
     "deleted": "Deleted {name}.",
     "not_a_grid": "{name} is no longer a grid folder made by this app. The list has been refreshed.",
     "delete_failed": "Could not delete {name}: {error}",
     "busy": "This grid is being generated.",
-    "aoi": "AOI",
-    "run": "Run",
     "preview": "Map preview",
-    "points": "{n} points",
-    "tiles": "{n} tiles",
-    "total": "{size} total",
     "preview_pmtiles": "PMTiles · zoom {min}–{max}",
     "preview_geojson": "Drawn cell by cell (no preview file)",
     "preview_none": "Not available (no preview file, over 50,000 cells)",
-    "job": {
-      "steps": {
-        "cells": "Generating cells",
-        "shp": "Converting to Shapefile",
-        "preview": "Building map preview (PMTiles)",
-        "finish": "Writing files and metadata"
-      },
-      "preview_feed": "Sending cells to tippecanoe · {pct}%",
-      "preview_tiles": "tippecanoe is cutting vector tiles · {pct}%",
-      "preview_about": "A hidden PMTiles file of vector tiles that lets the map draw the grid at any size. It is not one of the output files.",
-      "elapsed": "Elapsed {time}",
-      "remaining": "about {time} left",
-      "estimating": "estimating time left…",
-      "dismiss": "Dismiss",
-      "ready": "Ready",
-      "finished": "Finished in {time}"
+    "col": {
+      "grid": "Grid",
+      "level": "Level",
+      "cells": "Cells",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "ready": "Ready",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "generate": "Generate",
+    "tip": {
+      "cancel": "Stop generating. Nothing is written.",
+      "retry": "Generate again with the same settings: {settings}",
+      "wait_ready": "Available once the grid is ready",
+      "wait_finish": "Wait for the grid to finish",
+      "no_map": "Nothing to show: the grid was not written",
+      "no_details": "No details: the grid was not written",
+      "dismiss": "Remove from the list",
+      "details": "Details: files, AOI and run",
+      "delete": "Delete this grid…"
     }
   },
   "metadata": {
@@ -137,6 +133,8 @@
     "aoi": "AOI",
     "run": "Run",
     "correction": "Correction",
-    "raw": "Raw JSON"
+    "raw": "Raw JSON",
+    "files": "Files",
+    "total": "Total, with the map preview"
   }
 }

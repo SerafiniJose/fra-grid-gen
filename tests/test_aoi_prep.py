@@ -122,15 +122,3 @@ def test_feature_collection_export_reads_and_removes_temp_file(tmp_path, monkeyp
     gdf = aoi_prep._feature_collection_gdf(object())
     assert len(gdf) == 1 and written and not written[0].exists()
 
-
-def test_the_aoi_spec_reaches_the_metadata():
-    from pysepal.solara.components.aoi import AoiSpec
-
-    from component.scripts import metadata as md
-
-    spec = AoiSpec(method="ADMIN1", admin_codes=("1", "2"))
-    result = SimpleNamespace(method="ADMIN1", name="PRY_Chaco", admin="2", gdf=_gdf(box(*CHACO)), spec=spec)
-    info = aoi_prep.aoi_info_from_result(result)
-    record = md.build_record(name="g", aoi=info, level=17, formats=["gpkg"], files=[], cell_count=0, n_tiles=0,
-                             tile_deg=1.0, clip_buffer_deg=0.0, duration_s=0.0, versions={})
-    assert AoiSpec.from_dict(record["aoi"]["spec"]) == spec

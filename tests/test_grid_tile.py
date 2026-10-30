@@ -57,7 +57,7 @@ def test_grid_tab_shows_no_job_progress_folder_or_result(results_root, chaco_aoi
     from component.model.state_manager import AppState, JobState
 
     state = AppState()
-    state.job.set(JobState(status="running", name="g", level=17, done=1, total=4, cells=50))
+    state.job.set(JobState(status="running", name="g", level=17))
     state.cancel_event.set(threading.Event())
     box_, rc = _render_with_aoi(state, chaco_aoi, monkeypatch)
     try:

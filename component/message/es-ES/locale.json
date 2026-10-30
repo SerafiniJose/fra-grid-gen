@@ -67,9 +67,9 @@
     "shp": "Shapefile (.shp)",
     "shp_hint": "Máx. 2 GB por archivo (~4M celdas), nombres de campo de 10 caracteres, sin metadatos incrustados.",
     "shp_disabled": "El shapefile no está disponible por encima de 4.000.000 de celdas estimadas.",
-    "plots": "Agregar una parcela de 1 ha en el centro de cada celda",
-    "plots_hint": "Un cuadrado de 100 m × 100 m, escrito como segunda capa / archivo: <nombre>_plots.",
-    "plots_disabled": "Las parcelas de 1 ha solo están disponibles de r17 a r19: las celdas más finas son más pequeñas que la parcela.",
+    "centroids": "Agregar centroides (1 ha)",
+    "centroids_hint": "Un cuadrado de 100 m × 100 m en el centroide de cada celda, escrito como segunda capa / archivo: <nombre>_centroids.",
+    "centroids_disabled": "Los centroides solo están disponibles de r17 a r19: las celdas más finas son más pequeñas que el cuadrado de 1 ha.",
     "formats_empty": "Elija al menos un formato.",
     "generate": "Generar grilla",
     "cancel": "Cancelar",
@@ -90,43 +90,39 @@
   },
   "outputs": {
     "empty": "Aún no hay grillas. Genere una en la pestaña Grilla.",
-    "cells": "{cells} celdas",
     "show": "Ver en el mapa",
     "hide": "Quitar del mapa",
-    "metadata": "Metadatos",
-    "reload_aoi": "Recargar AOI",
-    "reload_failed": "No se pudo recargar la AOI de {name}: su origen ya no existe.",
     "delete_title": "¿Eliminar la grilla?",
     "delete_message": "Se eliminará la carpeta {name} con todos sus archivos ({size}). No se puede deshacer.",
     "deleted": "Se eliminó {name}.",
     "not_a_grid": "{name} ya no es una carpeta de grilla creada por esta aplicación. Se actualizó la lista.",
     "delete_failed": "No se pudo eliminar {name}: {error}",
     "busy": "Esta grilla se está generando.",
-    "aoi": "Zona",
-    "run": "Ejecución",
     "preview": "Vista en el mapa",
-    "points": "{n} puntos",
-    "tiles": "{n} bloques",
-    "total": "{size} en total",
     "preview_pmtiles": "PMTiles · zoom {min}–{max}",
     "preview_geojson": "Se dibuja celda por celda (sin archivo de vista previa)",
     "preview_none": "No disponible (sin archivo de vista previa, más de 50.000 celdas)",
-    "job": {
-      "steps": {
-        "cells": "Generando celdas",
-        "shp": "Convirtiendo a Shapefile",
-        "preview": "Creando la vista previa del mapa (PMTiles)",
-        "finish": "Escribiendo archivos y metadatos"
-      },
-      "preview_feed": "Enviando celdas a tippecanoe · {pct}%",
-      "preview_tiles": "tippecanoe está creando teselas vectoriales · {pct}%",
-      "preview_about": "Un archivo PMTiles oculto de teselas vectoriales que permite al mapa dibujar la grilla a cualquier tamaño. No es uno de los archivos de salida.",
-      "elapsed": "Transcurrido {time}",
-      "remaining": "quedan unos {time}",
-      "estimating": "estimando el tiempo restante…",
-      "dismiss": "Cerrar",
-      "ready": "Lista",
-      "finished": "Terminada en {time}"
+    "col": {
+      "grid": "Grilla",
+      "level": "Nivel",
+      "cells": "Celdas",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "ready": "Lista",
+    "cancel": "Cancelar",
+    "retry": "Reintentar",
+    "generate": "Generar",
+    "tip": {
+      "cancel": "Detener la generación. No se escribe nada.",
+      "retry": "Generar de nuevo con la misma configuración: {settings}",
+      "wait_ready": "Disponible cuando la grilla esté lista",
+      "wait_finish": "Espera a que la grilla termine",
+      "no_map": "Nada que mostrar: la grilla no se escribió",
+      "no_details": "Sin detalles: la grilla no se escribió",
+      "dismiss": "Quitar de la lista",
+      "details": "Detalles: archivos, AOI y ejecución",
+      "delete": "Eliminar esta grilla…"
     }
   },
   "metadata": {
@@ -137,6 +133,8 @@
     "aoi": "Zona",
     "run": "Ejecución",
     "correction": "Corrección",
-    "raw": "JSON completo"
+    "raw": "JSON completo",
+    "files": "Archivos",
+    "total": "Total, con la vista en el mapa"
   }
 }

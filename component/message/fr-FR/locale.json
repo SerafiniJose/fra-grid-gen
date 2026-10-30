@@ -67,9 +67,9 @@
     "shp": "Shapefile (.shp)",
     "shp_hint": "2 Go max. par fichier (~4M cellules), noms de champs de 10 caractères, pas de métadonnées intégrées.",
     "shp_disabled": "Shapefile n'est pas disponible au-delà de 4 000 000 cellules estimées.",
-    "plots": "Ajouter une placette de 1 ha au centre de chaque cellule",
-    "plots_hint": "Un carré de 100 m × 100 m, écrit comme deuxième couche / fichier : <nom>_plots.",
-    "plots_disabled": "Les placettes de 1 ha ne sont disponibles que de r17 à r19 : les cellules plus fines sont plus petites que la placette.",
+    "centroids": "Ajouter les centroïdes (1 ha)",
+    "centroids_hint": "Un carré de 100 m × 100 m sur le centroïde de chaque cellule, écrit comme deuxième couche / fichier : <nom>_centroids.",
+    "centroids_disabled": "Les centroïdes ne sont disponibles que de r17 à r19 : les cellules plus fines sont plus petites que le carré de 1 ha.",
     "formats_empty": "Choisissez au moins un format.",
     "generate": "Générer la grille",
     "cancel": "Annuler",
@@ -90,43 +90,39 @@
   },
   "outputs": {
     "empty": "Aucune grille pour l'instant. Générez-en une dans l'onglet Grille.",
-    "cells": "{cells} cellules",
     "show": "Afficher sur la carte",
     "hide": "Retirer de la carte",
-    "metadata": "Métadonnées",
-    "reload_aoi": "Recharger l'AOI",
-    "reload_failed": "Impossible de recharger l'AOI de {name} : sa source n'existe plus.",
     "delete_title": "Supprimer la grille ?",
     "delete_message": "Le dossier {name} et tous ses fichiers ({size}) seront supprimés. Cette action est irréversible.",
     "deleted": "{name} supprimé.",
     "not_a_grid": "{name} n'est plus un dossier de grille créé par cette application. La liste a été actualisée.",
     "delete_failed": "Impossible de supprimer {name} : {error}",
     "busy": "Cette grille est en cours de génération.",
-    "aoi": "AOI",
-    "run": "Exécution",
     "preview": "Aperçu cartographique",
-    "points": "{n} points",
-    "tiles": "{n} tuiles",
-    "total": "{size} au total",
     "preview_pmtiles": "PMTiles · zoom {min}–{max}",
     "preview_geojson": "Dessiné cellule par cellule (pas de fichier d'aperçu)",
     "preview_none": "Non disponible (pas de fichier d'aperçu, plus de 50 000 cellules)",
-    "job": {
-      "steps": {
-        "cells": "Génération des cellules",
-        "shp": "Conversion en Shapefile",
-        "preview": "Création de l'aperçu cartographique (PMTiles)",
-        "finish": "Écriture des fichiers et des métadonnées"
-      },
-      "preview_feed": "Envoi des cellules à tippecanoe · {pct} %",
-      "preview_tiles": "tippecanoe découpe les tuiles vectorielles · {pct} %",
-      "preview_about": "Un fichier PMTiles caché de tuiles vectorielles qui permet à la carte de dessiner la grille à n'importe quelle taille. Ce n'est pas un des fichiers de sortie.",
-      "elapsed": "Écoulé {time}",
-      "remaining": "environ {time} restant",
-      "estimating": "estimation du temps restant…",
-      "dismiss": "Masquer",
-      "ready": "Prêt",
-      "finished": "Terminé en {time}"
+    "col": {
+      "grid": "Grille",
+      "level": "Niveau",
+      "cells": "Cellules",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "ready": "Prête",
+    "cancel": "Annuler",
+    "retry": "Réessayer",
+    "generate": "Générer",
+    "tip": {
+      "cancel": "Arrêter la génération. Rien n'est écrit.",
+      "retry": "Générer à nouveau avec les mêmes paramètres : {settings}",
+      "wait_ready": "Disponible une fois la grille prête",
+      "wait_finish": "Attendez la fin de la génération",
+      "no_map": "Rien à afficher : la grille n'a pas été écrite",
+      "no_details": "Pas de détails : la grille n'a pas été écrite",
+      "dismiss": "Retirer de la liste",
+      "details": "Détails : fichiers, AOI et exécution",
+      "delete": "Supprimer cette grille…"
     }
   },
   "metadata": {
@@ -137,6 +133,8 @@
     "aoi": "AOI",
     "run": "Exécution",
     "correction": "Correction",
-    "raw": "JSON brut"
+    "raw": "JSON brut",
+    "files": "Fichiers",
+    "total": "Total, aperçu cartographique compris"
   }
 }
