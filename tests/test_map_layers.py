@@ -127,6 +127,10 @@ def test_show_grid_pmtiles_adds_outline_and_aoi_and_zooms(tmp_path, monkeypatch)
     assert grid.max_data_zoom == 13 and grid.url.endswith(".pmtiles")
     assert m.find_layer(ml.AOI_LAYER_KEY).style["fillOpacity"] == 0.0
     assert m.zoomed == (0.0, 0.0, 2.0, 1.0)
+    # Both follow the theme: SepalMap merges theme_style[is_dark] into style.
+    light, dark = grid.theme_style[False], grid.theme_style[True]
+    assert light["layers"][0]["paint"]["line-color"] != dark["layers"][0]["paint"]["line-color"]
+    assert set(m.find_layer(ml.AOI_LAYER_KEY).theme_style) == {True, False}
     assert ml.remove_grid(m) is True and m.layers == []
 
 

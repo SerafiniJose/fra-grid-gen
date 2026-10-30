@@ -77,6 +77,14 @@ def primary_color() -> str:
         return _FALLBACK_COLOR
 
 
+def theme_style(make) -> dict:
+    """``{is_dark: make(primary)}``: SepalMap merges the entry for the current theme
+    into the layer's ``style`` on add and on every theme switch (as pysepal's AOI)."""
+    from pysepal.frontend import styles as ss
+
+    return {is_dark: make(colors["primary"]) for is_dark, colors in ss.THEMES.items()}
+
+
 def preview_style(url: str, color: str) -> dict:
     """Cell outlines and, when the archive has them, 1 ha plots; scalar paint only.
 
@@ -140,9 +148,11 @@ def _aoi_layer(aoi_path, color, name):
     import ipyleaflet
 
     data = json.loads(Path(aoi_path).read_text(encoding="utf-8"))
-    return ipyleaflet.GeoJSON(
+    layer = ipyleaflet.GeoJSON(
         data=data, name=name, style={"color": color, "weight": 2, "fillOpacity": 0.0, "dashArray": "6 4"}
     )
+    layer.theme_style = theme_style(lambda c: {"color": c})
+    return layer
 
 
 def show_grid_pmtiles(map_, pmtiles_path, *, name: str, maxzoom: int, bounds=None, aoi_path=None):
@@ -154,6 +164,9 @@ def show_grid_pmtiles(map_, pmtiles_path, *, name: str, maxzoom: int, bounds=Non
     _enable_loopback(client)
     layer = _pmtiles_layer_class()(url=client.pmtiles_url, style=preview_style(client.pmtiles_url, color),
                                    max_data_zoom=int(maxzoom), name=name)
+    # The PMTiles view ignores later style changes; it picks the new one up because
+    # SepalMap's basemap swap on a theme switch rebuilds every layer view above it.
+    layer.theme_style = theme_style(lambda c: preview_style(client.pmtiles_url, c))
     remove_grid(map_)
     if aoi_path is not None and Path(aoi_path).is_file():
         map_.add_layer(_aoi_layer(aoi_path, color, f"{name} AOI"), key=AOI_LAYER_KEY)
@@ -170,6 +183,7 @@ def show_grid(map_, gpkg_path, layer: str, *, name: str):
 
     gdf = pyogrio.read_dataframe(gpkg_path, layer=layer, columns=["global_id"])
     geo = ipyleaflet.GeoJSON(data=json.loads(gdf.to_json()), name=name)
+    geo.theme_style = theme_style(lambda c: {"color": c})
     remove_grid(map_)
     map_.add_layer(geo, key=GRID_LAYER_KEY)
     # SepalMap.add_layer applied its primary-colour default style; keep the
