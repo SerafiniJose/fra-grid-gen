@@ -22,7 +22,6 @@ from component.scripts.levels import level_stats
 from component.scripts.scratch import scratch_dir
 
 ADMIN_METHODS = ("ADMIN0", "ADMIN1", "ADMIN2")
-KM_PER_DEG = 111.32
 _POINT, _POLYGON = 0, 3  # shapely type ids
 _GEOD = Geod(ellps="WGS84")
 
@@ -97,14 +96,15 @@ def prepare_aoi(gdf, *, method: str, label: str, admin_code=None, source=None) -
         geom = shapely.make_valid(shapely.union_all(polys))
 
     minx, miny, maxx, maxy = geom.bounds
-    if maxx - minx > 180.0:
+    # Points cannot wrap: a global sample may span more than 180 degrees.
+    if n_points is None and maxx - minx > 180.0:
         raise AoiError("antimeridian")
 
     if n_points is None:
         area_km2 = abs(_GEOD.geometry_area_perimeter(geom)[0]) / 1e6
         perimeter = {}
         for lvl in g.LEVELS:
-            tol = level_stats(lvl).cls_km / 2.0 / KM_PER_DEG
+            tol = level_stats(lvl).cls_km / 2.0 / g.KM_PER_DEG
             perimeter[lvl] = _GEOD.geometry_area_perimeter(geom.simplify(tol))[1] / 1000.0
     else:
         area_km2 = 0.0
@@ -171,7 +171,7 @@ def _ee_to_geojson(obj, path: Path) -> None:
         obj = ee.FeatureCollection([obj])
     elif not isinstance(obj, ee.FeatureCollection):
         obj = ee.FeatureCollection(obj)
-    ee_export_vector(obj, str(path), selectors=[], verbose=False)
+    ee_export_vector(obj, path)
 
 
 def _feature_collection_gdf(fc):

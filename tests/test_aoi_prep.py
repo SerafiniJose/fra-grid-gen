@@ -61,6 +61,11 @@ def test_points_are_deduplicated_and_have_no_area():
     assert info.area_km2 == 0 and all(v == 0 for v in info.perimeter_km.values())
 
 
+def test_points_wider_than_180_degrees_are_accepted():
+    info = prepare_aoi(_gdf(Point(-50, -10), Point(140, 35)), method="POINTS", label="pts")
+    assert info.n_points == 2 and info.bbox == (-50, -10, 140, 35)
+
+
 def test_complex_aoi_prepares_quickly():
     ring = Point(-60.0, -22.0).buffer(2.0, quad_segs=15_000)  # 60k vertices
     t0 = time.perf_counter()
