@@ -78,10 +78,11 @@ def primary_color() -> str:
 
 
 def preview_style(url: str, color: str) -> dict:
-    """One outline layer, scalar paint only.
+    """Cell outlines and, when the archive has them, 1 ha plots; scalar paint only.
 
     protomaps-leaflet's json_style copies paint values verbatim into canvas
     styles: an expression would render black (see spatial_risk pmtiles_map).
+    A source-layer missing from the archive (no plots) simply draws nothing.
     """
     return {
         "version": 8,
@@ -93,7 +94,14 @@ def preview_style(url: str, color: str) -> dict:
                 "source": _SOURCE,
                 "source-layer": g.PREVIEW_LAYER,
                 "paint": {"line-color": color, "line-width": 1},
-            }
+            },
+            {
+                "id": "plots",
+                "type": "line",
+                "source": _SOURCE,
+                "source-layer": g.PREVIEW_PLOTS_LAYER,
+                "paint": {"line-color": color, "line-width": 1},
+            },
         ],
     }
 

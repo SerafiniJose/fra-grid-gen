@@ -74,12 +74,14 @@ def test_plan_ignores_missing_file_and_foreign_names(tmp_path):
     assert ml.plan_preview(tmp_path, "g", {}).available is False  # old/odd metadata
 
 
-def test_preview_style_is_one_scalar_line_layer():
+def test_preview_style_has_scalar_cell_and_plot_layers():
     style = ml.preview_style("http://x/pmtiles?filePath=/a/.preview.pmtiles", "#76591e")
     assert style["sources"]["grid"]["url"].endswith(".pmtiles")
-    (layer,) = style["layers"]
-    assert layer["type"] == "line" and layer["source-layer"] == "cells"
-    assert layer["paint"] == {"line-color": "#76591e", "line-width": 1}
+    cells, plots = style["layers"]
+    assert cells["type"] == "line" and cells["source-layer"] == "cells"
+    assert cells["paint"] == {"line-color": "#76591e", "line-width": 1}
+    assert plots["type"] == "line" and plots["source-layer"] == "plots"
+    assert plots["paint"] == cells["paint"]
 
 
 def test_pmtiles_layer_sends_data_zoom_options():

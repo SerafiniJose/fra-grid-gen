@@ -1,5 +1,8 @@
+import json
 import struct
+import subprocess
 import threading
+from pathlib import Path
 
 import geopandas as gpd
 import pyogrio
@@ -30,6 +33,11 @@ def test_feature_lines_carry_only_global_id():
         '{"type":"Feature","properties":{"global_id":7},"geometry":{"type":"Point","coordinates":[1,2]}}'
     )
     assert lines.endswith("\n") and len(lines.splitlines()) == 2
+
+
+def test_feature_lines_can_target_another_layer_from_a_zoom():
+    (line,) = pp.feature_lines([7], ['{"type":"Point","coordinates":[1,2]}'], "plots", 12).splitlines()
+    assert line.endswith(',"tippecanoe":{"layer":"plots","minzoom":12}}')
 
 
 def test_parse_progress():
@@ -113,3 +121,16 @@ def test_on_progress_reports_rising_percent_without_repeats(tmp_path):
     assert seen and seen == sorted(seen) and len(seen) == len(set(seen))
     assert 50.0 in seen  # feeding (first half) completes before tippecanoe's own progress
     assert all(0 < p <= 100 for p in seen)
+
+
+
+@needs_tippecanoe
+def test_plots_go_into_their_own_layer_of_the_same_archive(tmp_path):
+    gpkg = _gpkg(tmp_path / "g.gpkg")
+    pyogrio.write_dataframe(pyogrio.read_dataframe(gpkg, layer="g"), gpkg, layer="g_plots", driver="GPKG")
+    out = tmp_path / "p.pmtiles"
+    pp.build_preview(gpkg, "g", out, minzoom=10, maxzoom=13, tmp_dir=tmp_path, plots_layer="g_plots")
+    decoded = json.loads(subprocess.run([str(Path(pp.resolve_tippecanoe()).parent / "tippecanoe-decode"),
+                                         "-z", "13", str(out)], capture_output=True, text=True, check=True).stdout)
+    layers = {lyr["properties"]["layer"] for tile in decoded["features"] for lyr in tile["features"]}
+    assert layers == {"cells", "plots"}

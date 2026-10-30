@@ -221,7 +221,7 @@ def _check(cancel) -> None:
         raise BuildCancelled()
 
 
-def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, cancel, on_step):
+def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, cancel, on_step, plots_layer=None):
     """Build ``part/g.PREVIEW_FILE``; its metadata entry, or None when skipped."""
     minzoom, maxzoom = g.PREVIEW_ZOOMS[level]
     target = part / g.PREVIEW_FILE
@@ -230,7 +230,8 @@ def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, canc
     try:
         built = pp.build_preview(gpkg_tmp, name, work / g.PREVIEW_FILE, minzoom=minzoom, maxzoom=maxzoom,
                                  tmp_dir=work, cancel=cancel,
-                                 on_progress=lambda pct: on_step("preview", min(pct / 100.0, 1.0)))
+                                 on_progress=lambda pct: on_step("preview", min(pct / 100.0, 1.0)),
+                                 plots_layer=plots_layer)
         size = built.stat().st_size
         shutil.move(str(built), str(target))
     except pp.PreviewCancelled:
@@ -284,7 +285,8 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
             files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{plots_layer}.shp", plots_layer)]
     write_aoi_geojson(aoi.geometry, part / md.AOI_FILE)
     files += [md.AOI_FILE, md.METADATA_FILE]
-    preview = _build_preview(gpkg_tmp, name, level, part, work, cancel, on_step)
+    preview = _build_preview(gpkg_tmp, name, level, part, work, cancel, on_step,
+                             plots_layer if request.plots else None)
     _check(cancel)
     on_step("finish", None)
 

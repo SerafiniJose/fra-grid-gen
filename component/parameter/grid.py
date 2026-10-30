@@ -27,6 +27,10 @@ PREVIEW_MAX_CELLS = 50_000
 # PMTiles map preview built with every grid (hidden; not a deliverable).
 PREVIEW_FILE = ".preview.pmtiles"
 PREVIEW_LAYER = "cells"  # tippecanoe -l name = MapLibre source-layer
+# The 1 ha plots share the archive as a second source-layer, from zoom 12
+# (~2.5 px a plot): below that tippecanoe would draw them as merged blotches.
+PREVIEW_PLOTS_LAYER = "plots"
+PREVIEW_PLOTS_MINZOOM = 12
 # Web-map zoom range per level. Every level starts at zoom 6 (country scale):
 # where a cell is under a pixel, tippecanoe merges cells into stand-in squares
 # (r21 shows real hexagons from z9, r17 from z6). Nothing is drawn below the min

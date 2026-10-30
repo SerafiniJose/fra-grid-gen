@@ -61,10 +61,15 @@ def resolve_tippecanoe():
     return str(sibling) if sibling.exists() else None
 
 
-def feature_lines(ids, geometries_json) -> str:
-    """GeoJSONSeq text: one Feature per line, ``global_id`` as the only property."""
+def feature_lines(ids, geometries_json, layer=None, minzoom=None) -> str:
+    """GeoJSONSeq text: one Feature per line, ``global_id`` as the only property.
+
+    ``layer``/``minzoom`` put the features in another tile layer than ``-l``'s,
+    from that zoom (tippecanoe's per-feature ``"tippecanoe"`` member).
+    """
+    tip = f',"tippecanoe":{{"layer":"{layer}","minzoom":{int(minzoom)}}}' if layer else ""
     return "".join(
-        f'{{"type":"Feature","properties":{{"global_id":{int(i)}}},"geometry":{geom}}}\n'
+        f'{{"type":"Feature","properties":{{"global_id":{int(i)}}},"geometry":{geom}{tip}}}\n'
         for i, geom in zip(ids, geometries_json)
     )
 
@@ -107,8 +112,11 @@ def _kill(proc) -> None:
 
 
 def build_preview(gpkg, layer, out_path, *, minzoom, maxzoom, tmp_dir, cancel=None, chunk=CHUNK,
-                  on_progress=None) -> Path:
+                  on_progress=None, plots_layer=None) -> Path:
     """Write ``out_path`` (a PMTiles archive of ``layer``'s cell outlines).
+
+    ``plots_layer`` (a GPKG layer of 1 ha plots) goes into the same archive as
+    the ``g.PREVIEW_PLOTS_LAYER`` source-layer, from ``g.PREVIEW_PLOTS_MINZOOM``.
 
     Raises ``TippecanoeUnavailable``, ``PreviewFailed`` or ``PreviewCancelled``;
     a partial archive is removed on any failure.
@@ -117,7 +125,9 @@ def build_preview(gpkg, layer, out_path, *, minzoom, maxzoom, tmp_dir, cancel=No
     if exe is None:
         raise TippecanoeUnavailable("tippecanoe not found on PATH or next to the interpreter")
     gpkg, out_path, tmp_dir = Path(gpkg), Path(out_path), Path(tmp_dir).absolute()
-    total = max(pyogrio.read_info(gpkg, layer=layer)["features"], 1)
+    plots_zoom = min(g.PREVIEW_PLOTS_MINZOOM, maxzoom)
+    sources = [(layer, None, None)] + ([(plots_layer, g.PREVIEW_PLOTS_LAYER, plots_zoom)] if plots_layer else [])
+    total = max(sum(pyogrio.read_info(gpkg, layer=src)["features"] for src, _, _ in sources), 1)
     milestones = _Milestones(on_progress)
     tail = []  # last stderr lines, for the error message
     state = {"pct": 0.0}
@@ -140,17 +150,19 @@ def build_preview(gpkg, layer, out_path, *, minzoom, maxzoom, tmp_dir, cancel=No
     try:
         fed = 0
         try:
-            with pyogrio.open_arrow(gpkg, layer=layer, columns=["global_id"], batch_size=chunk,
-                                    use_pyarrow=True) as (meta, batches):
-                geom_col = meta["geometry_name"] or "wkb_geometry"
-                for batch in batches:
-                    if cancel is not None and cancel.is_set():
-                        raise PreviewCancelled()
-                    geoms = shapely.from_wkb(batch.column(geom_col).to_numpy(zero_copy_only=False))
-                    text = feature_lines(batch.column("global_id").to_numpy(), shapely.to_geojson(geoms))
-                    proc.stdin.write(text.encode("utf-8"))
-                    fed += batch.num_rows
-                    milestones.update(50.0 * fed / total)
+            for src, tile_layer, tile_minzoom in sources:
+                with pyogrio.open_arrow(gpkg, layer=src, columns=["global_id"], batch_size=chunk,
+                                        use_pyarrow=True) as (meta, batches):
+                    geom_col = meta["geometry_name"] or "wkb_geometry"
+                    for batch in batches:
+                        if cancel is not None and cancel.is_set():
+                            raise PreviewCancelled()
+                        geoms = shapely.from_wkb(batch.column(geom_col).to_numpy(zero_copy_only=False))
+                        text = feature_lines(batch.column("global_id").to_numpy(), shapely.to_geojson(geoms),
+                                             tile_layer, tile_minzoom)
+                        proc.stdin.write(text.encode("utf-8"))
+                        fed += batch.num_rows
+                        milestones.update(50.0 * fed / total)
             proc.stdin.close()
         except BrokenPipeError:
             pass  # tippecanoe exited early: its return code says why

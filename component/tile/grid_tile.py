@@ -179,6 +179,11 @@ def GridTile(state, map_):
                     on_select=lambda lvl: None if job.running else state.level.set(lvl))
         solara.Text(t("grid.caption"), style="font-size: 0.8rem; opacity: 0.7;")
 
+        solara.Checkbox(label=t("grid.plots"), value=plots, on_value=state.plots.set,
+                        disabled=job.running or not plots_allowed)
+        solara.Text(t("grid.plots_hint") if plots_allowed else t("grid.plots_disabled"),
+                    style="font-size: 0.8rem; opacity: 0.7;")
+
         rv.TextField(
             label=t("grid.name_label"), v_model=name, on_v_model=on_name, dense=True, outlined=True,
             hint=t("grid.name_hint"), persistent_hint=True, disabled=job.running,
@@ -196,11 +201,6 @@ def GridTile(state, map_):
                         on_value=lambda on: toggle_format("shp", on),
                         disabled=job.running or not est.shp_allowed)
         solara.Text(t("grid.shp_hint") if est.shp_allowed else t("grid.shp_disabled"),
-                    style="font-size: 0.8rem; opacity: 0.7;")
-
-        solara.Checkbox(label=t("grid.plots"), value=plots, on_value=state.plots.set,
-                        disabled=job.running or not plots_allowed)
-        solara.Text(t("grid.plots_hint") if plots_allowed else t("grid.plots_disabled"),
                     style="font-size: 0.8rem; opacity: 0.7;")
 
         if reason == "grid.blocked_hint":

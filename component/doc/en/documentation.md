@@ -118,4 +118,5 @@ FRA cell that contains its centre.
   differ by less than 1 %, depending on latitude.
 - **Map preview.** Each grid has a hidden preview file that lets the map draw it at any
   size. Cells show from zoom 6; zoom in further to see the individual hexagons of finer
-  levels. The preview is not one of the output files.
+  levels. The 1 ha plots, when the grid has them, show from zoom 12. The preview is not
+  one of the output files.

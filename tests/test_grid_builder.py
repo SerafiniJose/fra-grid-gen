@@ -189,6 +189,21 @@ def test_plots_layer_holds_one_ha_square_per_cell(results_root, chaco_aoi):
     assert md.read_metadata_json(res.folder)["plots"] == {"layer": "c17_plots", "side_m": 100.0}
 
 
+@needs_engine
+def test_plots_are_fed_to_the_map_preview(results_root, chaco_aoi, monkeypatch):
+    seen = {}
+
+    def fake(gpkg, layer, out, **k):
+        seen.update(layer=layer, plots_layer=k.get("plots_layer"))
+        raise pp.PreviewFailed("stop here")
+
+    monkeypatch.setattr(pp, "build_preview", fake)
+    gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "pl", plots=True))
+    assert seen == {"layer": "pl", "plots_layer": "pl_plots"}
+    gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "np"))
+    assert seen["plots_layer"] is None
+
+
 def test_plot_squares_are_one_ha_and_cross_the_antimeridian():
     squares = gb.plot_squares([0.0, 179.9999, -60.0], [0.0, 70.0, -22.3])
     assert np.allclose(gb._geodesic_area_ha(squares), 1.0, atol=0.001)
