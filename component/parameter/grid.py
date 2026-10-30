@@ -33,6 +33,8 @@ TILE_DEG = {17: 1.0, 18: 1.0, 19: 0.5, 20: 0.5, 21: 0.25}
 # Extra clip margin on top of one cell spacing: covers the approximate inverse
 # of the latitude correction (error <= 0.00057 deg).
 CLIP_EXTRA_DEG = 0.002
+# Rough km per degree, for cell-size tolerances in degrees (AOI simplify, clip buffer).
+KM_PER_DEG = 111.32
 
 # DGGRID's sphere (WGS84 authalic radius), used for level statistics.
 SPHERE_RADIUS_M = 6371007.180918475

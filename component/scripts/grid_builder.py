@@ -47,7 +47,6 @@ from component.scripts.writers import append_cells, gpkg_to_shp, human_size, wri
 
 logger = logging.getLogger(g.LOGGER_NAME)
 
-KM_PER_DEG = 111.32
 _GEOD = Geod(ellps="WGS84")
 FORMATS = ("gpkg", "shp")
 
@@ -97,7 +96,7 @@ def _empty_frame(level: int) -> gpd.GeoDataFrame:
 
 def clip_buffer_deg(level: int, max_abs_lat: float) -> float:
     """One cell spacing in degrees of longitude at ``max_abs_lat``, plus margin."""
-    cls_deg = level_stats(level).cls_km / KM_PER_DEG
+    cls_deg = level_stats(level).cls_km / g.KM_PER_DEG
     cos = max(math.cos(math.radians(min(abs(max_abs_lat), 89.0))), 0.05)
     return cls_deg / cos + g.CLIP_EXTRA_DEG
 
@@ -105,7 +104,7 @@ def clip_buffer_deg(level: int, max_abs_lat: float) -> float:
 def search_region(aoi, level: int, buffer_deg: float):
     geom = aoi.geometry
     if not aoi.is_points:
-        geom = geom.simplify(level_stats(level).cls_km / KM_PER_DEG / 4.0)
+        geom = geom.simplify(level_stats(level).cls_km / g.KM_PER_DEG / 4.0)
     region = geom.buffer(buffer_deg)
     shapely.prepare(region)
     return region

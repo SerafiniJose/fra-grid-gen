@@ -7,8 +7,7 @@ import pandas as pd
 from component import i18n
 
 ROOT = Path(__file__).resolve().parents[1]
-_KEY = re.compile(r"""\b(?:t|plural)\(\s*["']([a-z0-9_.]+)["']""")
-_KEY2 = re.compile(r"""\bplural\([^,]+,\s*["']([a-z0-9_.]+)["']\s*,\s*["']([a-z0-9_.]+)["']""")
+_KEY = re.compile(r"""\bt\(\s*["']([a-z0-9_.]+)["']""")
 
 
 def _keys(locale):
@@ -23,8 +22,6 @@ def _used_keys():
             continue
         text = path.read_text(encoding="utf-8")
         used |= set(_KEY.findall(text))
-        for pair in _KEY2.findall(text):
-            used |= set(pair)
     return used
 
 

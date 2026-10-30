@@ -4,7 +4,7 @@ pysepal's Translator reads ``component/message/<locale>/*.json`` with an
 es-ES -> en fallback. The active locale comes from ``pysepal.i18n`` and is
 kernel-scoped; ``use_app_locale()`` (called by Page) swaps the translator when
 the header's language selector changes it. Never resolve a string at import
-time: call t()/plural() inside a render or an event handler.
+time: call t() inside a render or an event handler.
 """
 
 from pathlib import Path
@@ -58,11 +58,6 @@ def t(key: str, /, **fmt) -> str:
         return text.format(**fmt) if fmt else text
     except Exception:
         return key
-
-
-def plural(n: int, one_key: str, other_key: str, /, **fmt) -> str:
-    fmt.setdefault("n", n)
-    return t(one_key if n == 1 else other_key, **fmt)
 
 
 def app_available_locales() -> list:

@@ -42,8 +42,8 @@ def file_sizes(folder) -> list:
 
 def human_size(n: int) -> str:
     size = float(n)
-    for unit in ("B", "KB", "MB", "GB"):
-        if size < 1024 or unit == "GB":
+    for unit in ("B", "KB", "MB"):
+        if size < 1024:
             return f"{int(size)} B" if unit == "B" else f"{size:.1f} {unit}"
         size /= 1024
     return f"{size:.1f} GB"
