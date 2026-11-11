@@ -78,8 +78,7 @@ def start_generation(state, request, notifier, texts: JobTexts, *, build=build_g
             return False
         cancel = threading.Event()
         state.cancel_event.set(cancel)
-        state.job.set(JobState(status="running", name=request.name, level=request.level,
-                               formats=tuple(request.formats), request=request))
+        state.job.set(JobState(status="running", name=request.name, level=request.level, request=request))
     try:
         spawn_in_context(_run, (state, request, notifier, texts, cancel, build))
     except Exception as exc:  # no worker: undo the start so Generate stays usable

@@ -1,4 +1,4 @@
-"""Grid tab: level, name, formats and Generate.
+"""Grid tab: level, centroids, name and Generate.
 
 The job's progress, Cancel and outcome live on the Outputs tab (and in the
 notification pill): Generate switches there once the job has started.
@@ -31,11 +31,7 @@ from component.widget.levels_table import LevelsTable
 logger = logging.getLogger(g.LOGGER_NAME)
 
 
-def effective_formats(formats, shp_allowed: bool) -> tuple:
-    return tuple(sorted(f for f in formats if f != "shp" or shp_allowed))
-
-
-def block_reason(*, running, name_error, name_state, formats, verdict, engine_ok):
+def block_reason(*, running, name_error, name_state, verdict, engine_ok):
     if not engine_ok:
         return "grid.engine_missing"
     if running:
@@ -44,8 +40,6 @@ def block_reason(*, running, name_error, name_state, formats, verdict, engine_ok
         return f"grid.name_error.{name_error}"
     if name_state == "taken":
         return "grid.name_taken"
-    if not formats:
-        return "grid.formats_empty"
     if verdict == "blocked":
         return "grid.blocked_hint"
     return None
@@ -145,15 +139,14 @@ def GridTile(state, map_):
     _ = state.outputs_signal.value  # re-check the name after a run or a delete
     name_error = validate_grid_name(name)
     name_state = name_status(root, name) if name_error is None else "free"
-    formats = effective_formats(state.formats.value, est.shp_allowed)
     centroids_allowed = level in g.CENTROID_LEVELS
     centroids = state.centroids.value and centroids_allowed
     job = state.job.value
     reason = block_reason(running=job.running, name_error=name_error, name_state=name_state,
-                          formats=formats, verdict=est.verdict, engine_ok=engine_ok)
+                          verdict=est.verdict, engine_ok=engine_ok)
 
     def launch():
-        request = BuildRequest(aoi=info, level=level, name=name, formats=formats,
+        request = BuildRequest(aoi=info, level=level, name=name,
                                overwrite=name_state == "grid", centroids=centroids)
         if start_generation(state, request, notifier, job_texts(level, info.label, name)):
             state.active_tab.set(2)  # Outputs: the job's row, with Cancel
@@ -168,11 +161,6 @@ def GridTile(state, map_):
     def on_name(value):
         state.name_edited.set(True)
         state.out_name.set(value.strip())
-
-    def toggle_format(fmt, on):
-        current = set(state.formats.value)
-        (current.add if on else current.discard)(fmt)
-        state.formats.set(frozenset(current))
 
     with solara.Column(style="gap: 12px;"):
         if not engine_ok:
@@ -198,19 +186,8 @@ def GridTile(state, map_):
         elif name_state == "taken":
             solara.Error(t("grid.name_taken"), dense=True)
 
-        solara.Text(t("grid.formats_title"), style="font-weight: 600;")
-        solara.Checkbox(label=t("grid.gpkg"), value="gpkg" in state.formats.value,
-                        on_value=lambda on: toggle_format("gpkg", on), disabled=job.running)
-        solara.Checkbox(label=t("grid.shp"), value="shp" in formats,
-                        on_value=lambda on: toggle_format("shp", on),
-                        disabled=job.running or not est.shp_allowed)
-        solara.Text(t("grid.shp_hint") if est.shp_allowed else t("grid.shp_disabled"),
-                    style="font-size: 0.8rem; opacity: 0.7;")
-
         if reason == "grid.blocked_hint":
             solara.Error(t(reason, cells=f"{est.cells:,}"))
-        elif reason == "grid.formats_empty":
-            solara.Warning(t(reason), dense=True)
 
         with solara.Row(justify="end"):
             solara.Button(t("grid.generate"), color="primary", disabled=reason is not None,

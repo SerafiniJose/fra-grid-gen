@@ -63,15 +63,9 @@
     "name_exists": "Une grille porte déjà ce nom. La générer remplace son dossier.",
     "name_taken": "Un dossier porte ce nom et n'a pas été créé par cette application. Choisissez un autre nom.",
     "name_exists_now": "Une grille portant ce nom a été créée entre-temps dans un autre onglet. Pour la remplacer, relancez la génération depuis l'onglet Grille ; ou choisissez un autre nom.",
-    "formats_title": "Formats",
-    "gpkg": "GeoPackage (.gpkg)",
-    "shp": "Shapefile (.shp)",
-    "shp_hint": "2 Go max. par fichier (~4M cellules), noms de champs de 10 caractères, pas de métadonnées intégrées.",
-    "shp_disabled": "Shapefile n'est pas disponible au-delà de 4 000 000 cellules estimées.",
     "centroids": "Ajouter les centroïdes (1 ha)",
     "centroids_hint": "Un carré de 100 m × 100 m sur le centroïde de chaque cellule, écrit comme deuxième couche / fichier : <nom>_centroids.",
     "centroids_disabled": "Les centroïdes ne sont disponibles que de r17 à r19 : les cellules plus fines sont plus petites que le carré de 1 ha.",
-    "formats_empty": "Choisissez au moins un format.",
     "generate": "Générer la grille",
     "cancel": "Annuler",
     "blocked_hint": "Environ {cells} cellules, au-delà de la limite de 10 000 000. Utilisez une AOI plus petite ou un niveau plus grossier.",
@@ -122,7 +116,9 @@
       "no_details": "Pas de détails : la grille n'a pas été écrite",
       "dismiss": "Retirer de la liste",
       "details": "Détails : fichiers, AOI et exécution",
-      "delete": "Supprimer cette grille…"
+      "delete": "Supprimer cette grille…",
+      "download": "Télécharger…",
+      "no_download": "Rien à télécharger : la grille n'a pas été écrite"
     }
   },
   "metadata": {
@@ -136,5 +132,18 @@
     "raw": "JSON brut",
     "files": "Fichiers",
     "total": "Total, aperçu cartographique compris"
+  },
+  "download": {
+    "title": "Télécharger {name}",
+    "layer": "Couche",
+    "cells": "Hexagones",
+    "centroids": "Centroïdes",
+    "format": "Format",
+    "button": "Télécharger",
+    "shp_disabled": "Le Shapefile n'est pas disponible au-delà de 4 000 000 de cellules.",
+    "failed": "Impossible de préparer le téléchargement : {error}",
+    "gpkg": "GeoPackage (.gpkg)",
+    "shp": "Shapefile (.shp)",
+    "shp_hint": "2 Go max. par fichier (~4M cellules), noms de champs de 10 caractères, pas de métadonnées intégrées."
   }
 }

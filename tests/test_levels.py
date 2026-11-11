@@ -56,13 +56,13 @@ def test_verdict_thresholds(cells, expected):
     assert levels.verdict(cells) == expected
 
 
-def test_estimate_levels_rows_and_shp_limit():
+def test_estimate_levels_rows_and_verdicts():
     perims = {lvl: 400.0 for lvl in grid.LEVELS}
     rows = levels.estimate_levels(52_410.0, perims, None)
     assert [r.stats.level for r in rows] == list(grid.LEVELS)
     by = {r.stats.level: r for r in rows}
-    assert by[17].verdict == "ok" and by[17].shp_allowed
-    assert by[20].verdict == "warn" and by[20].shp_allowed  # ~3.6M > 2M warn; <= 4M so SHP allowed
+    assert by[17].verdict == "ok"
+    assert by[20].verdict == "warn"  # ~3.6M > 2M
     assert by[21].verdict == "blocked"
 
 

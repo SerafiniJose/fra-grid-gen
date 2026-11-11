@@ -1,5 +1,6 @@
 import json
 import threading
+from pathlib import Path
 from types import SimpleNamespace
 
 import geopandas as gpd
@@ -185,7 +186,7 @@ def _tips(rc):
 
 def _job(status, **changes):
     request = SimpleNamespace(aoi=SimpleNamespace(label="Chaco"), level=17, name="chaco_r17")
-    base = dict(status=status, name="chaco_r17", level=17, formats=("gpkg", "shp"),
+    base = dict(status=status, name="chaco_r17", level=17,
                 request=request)
     return JobState(**{**base, **changes})
 
@@ -200,10 +201,10 @@ def test_running_row_offers_cancel_and_waits_for_the_rest(results_root):
         assert "chaco_r17" in texts and "Chaco" in texts and "r17" in str([w.children for w in rc.find(v.Chip).widgets])
         assert not rc.find(v.ProgressLinear).widgets  # progress is in the notification pill
         assert "No grids yet. Generate one in the Grid tab." not in str([w.children for w in rc.find(v.Alert).widgets])
-        for icon in ("mdi-map-plus", "mdi-information-outline", "mdi-delete-outline"):
+        for icon in ("mdi-map-plus", "mdi-information-outline", "mdi-download", "mdi-delete-outline"):
             assert [b.disabled for b in _icon(rc, icon)] == [True], icon
         tips = _tips(rc)
-        assert tips.count("Available once the grid is ready") == 2 and "Wait for the grid to finish" in tips
+        assert tips.count("Available once the grid is ready") == 3 and "Wait for the grid to finish" in tips
         assert "Stop generating. Nothing is written." in tips
         _buttons(rc, "Cancel")[0].fire_event("click", {})
         assert state.cancel_event.value.is_set()
@@ -221,7 +222,7 @@ def test_failed_row_shows_the_reason_retries_and_dismisses(results_root, monkeyp
         assert "Grid generation failed: boom" in _strings(rc)
         assert not _buttons(rc, "Cancel")
         tips = _tips(rc)
-        assert "Generate again with the same settings: r17 · Chaco · GPKG, SHP" in tips
+        assert "Generate again with the same settings: r17 · Chaco" in tips
         _buttons(rc, "Retry")[0].fire_event("click", {})
         assert retried == ["chaco_r17"]
         delete = _icon(rc, "mdi-delete-outline")
@@ -298,3 +299,28 @@ def test_grid_row_delete_asks_first_and_is_off_while_generating(results_root):
     finally:
         rc.close()
 
+
+
+def test_grid_row_download_offers_layers_and_formats(results_root, monkeypatch):
+    from component.widget import download_dialog as dd
+
+    _grid(results_root, "a")
+    calls = []
+
+    def fake_zip(folder, layer, fmt, dest):
+        calls.append((layer, fmt))
+        (Path(dest) / "x.zip").write_bytes(b"zip")
+        return Path(dest) / "x.zip"
+
+    monkeypatch.setattr(dd, "export_zip", fake_zip)
+    box_, rc = _render_outputs(AppState())
+    try:
+        assert "Download…" in _tips(rc)
+        _icon(rc, "mdi-download")[0].fire_event("click", {})
+        dialog = [w for w in rc.find(v.Dialog).widgets if w.v_model]
+        assert len(dialog) == 1
+        radios = {r.value: bool(r.disabled) for r in rc.find(v.Radio).widgets}
+        assert radios == {"cells": False, "centroids": True, "gpkg": False, "shp": False}  # no centroids layer
+        assert dd.zip_bytes(results_root / "a", "a", "shp") == b"zip" and calls == [("a", "shp")]
+    finally:
+        rc.close()

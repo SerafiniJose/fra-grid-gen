@@ -87,8 +87,6 @@ def test_invalid_requests_fail_before_any_work(results_root, chaco_aoi):
         gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "../evil"))
     with pytest.raises(ValueError):
         gb.build_grid(gb.BuildRequest(chaco_aoi, 16, "ok"))
-    with pytest.raises(ValueError):
-        gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "ok", formats=()))
     assert list(results_root.iterdir()) == []
 
 
@@ -154,7 +152,7 @@ def test_concurrent_same_name_builds_stage_in_their_own_part_folders(results_roo
 def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
     progress = []
     res = gb.build_grid(
-        gb.BuildRequest(chaco_aoi, 17, "chaco17", formats=("gpkg", "shp")),
+        gb.BuildRequest(chaco_aoi, 17, "chaco17"),
         on_progress=lambda d, t, c: progress.append((d, t, c)),
     )
     folder = results_root / "chaco17"
@@ -162,8 +160,7 @@ def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
     assert res.cell_count == 330  # verified while planning (R-equivalent pipeline)
     assert progress[-1] == (2, 2, 330)
     assert sorted(p.name for p in folder.iterdir()) == sorted(
-        ["chaco17.gpkg", "chaco17.shp", "chaco17.shx", "chaco17.dbf", "chaco17.prj", "chaco17.cpg",
-         "metadata.json", "aoi.geojson", *PREVIEW]
+        ["chaco17.gpkg", "metadata.json", "aoi.geojson", *PREVIEW]  # GPKG only: SHP is made on download
     )
     assert [p.name for p in results_root.iterdir()] == ["chaco17"]  # no .part left
     assert [p.name for p in (tmp_path / "local").iterdir()] == ["dggrid"]  # work dir removed
@@ -180,20 +177,18 @@ def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
     record = md.read_metadata_json(folder)
     assert record["run"]["cell_count"] == 330 and record["dggs"]["resolution"] == 17
     assert read_gpkg_metadata(folder / "chaco17.gpkg", "chaco17") == record
-    shp = pyogrio.read_dataframe(folder / "chaco17.shp")
-    assert len(shp) == 330
+    assert record["run"]["formats"] == ["gpkg"]
     assert record["centroids"] is None
 
 
 @needs_engine
 def test_centroids_layer_holds_one_ha_square_per_cell(results_root, chaco_aoi):
-    res = gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "c17", formats=("gpkg", "shp"), centroids=True))
+    res = gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "c17", centroids=True))
     cells = pyogrio.read_dataframe(res.folder / "c17.gpkg", layer="c17")
     centroids = pyogrio.read_dataframe(res.folder / "c17.gpkg", layer="c17_centroids")
     assert list(centroids["global_id"]) == list(cells["global_id"]) and "area_ha" not in centroids
     assert shapely.contains(cells.geometry.values, centroids.geometry.values).all()
     assert np.allclose(gb._geodesic_area_ha(centroids.geometry.values), 1.0, atol=0.001)
-    assert len(pyogrio.read_dataframe(res.folder / "c17_centroids.shp")) == 330
     assert md.read_metadata_json(res.folder)["centroids"] == {"layer": "c17_centroids", "side_m": 100.0}
 
 
@@ -327,14 +322,6 @@ def test_write_failure_cleans_part_folder(results_root, chaco_aoi, monkeypatch):
 
 
 @needs_engine
-def test_gpkg_unticked_keeps_only_shapefile(results_root, chaco_aoi):
-    res = gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "s", formats=("shp",)))
-    names = sorted(p.name for p in res.folder.iterdir())
-    assert "s.gpkg" not in names and "s.shp" in names
-    assert md.read_metadata_json(res.folder)["run"]["formats"] == ["shp"]
-
-
-@needs_engine
 def test_area_ha_is_geodesic_wgs84(results_root, chaco_aoi):
     from pyproj import Geod
 
@@ -349,7 +336,7 @@ def test_area_ha_is_geodesic_wgs84(results_root, chaco_aoi):
 @needs_tippecanoe
 def test_preview_is_built_but_not_a_deliverable(results_root, chaco_aoi, caplog):
     with caplog.at_level("INFO", logger="fra_grid"):
-        res = gb.build_grid(gb.BuildRequest(chaco_aoi, 18, "pv", formats=("shp",)))  # shp-only still previews
+        res = gb.build_grid(gb.BuildRequest(chaco_aoi, 18, "pv"))
     preview = res.folder / ".preview.pmtiles"
     assert preview.read_bytes()[:7] == b"PMTiles"
     assert res.metadata["preview"] == {"file": ".preview.pmtiles", "minzoom": 3, "maxzoom": 14}

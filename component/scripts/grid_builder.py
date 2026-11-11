@@ -48,12 +48,11 @@ from component.scripts.fra_correction import (
 )
 from component.scripts.levels import level_stats
 from component.scripts.scratch import local_scratch_dir
-from component.scripts.writers import append_cells, gpkg_to_shp, human_size, write_aoi_geojson
+from component.scripts.writers import append_cells, human_size, write_aoi_geojson
 
 logger = logging.getLogger(g.LOGGER_NAME)
 
 _GEOD = Geod(ellps="WGS84")
-FORMATS = ("gpkg", "shp")
 POINT_BATCH = 50_000  # points per dggrid lookup: bounds memory, keeps progress and Cancel
 POINT_RING_M = 1.0  # far above the gap between a cell's true edge and its straight corrected edge
 
@@ -71,7 +70,6 @@ class BuildRequest:
     aoi: object
     level: int
     name: str
-    formats: tuple = ("gpkg",)
     overwrite: bool = False
     centroids: bool = False
 
@@ -231,9 +229,6 @@ def _validate(request: BuildRequest, root: Path) -> None:
         raise ValueError(f"invalid grid name ({err}): {request.name!r}")
     if request.level not in g.LEVELS:
         raise ValueError(f"level must be one of {g.LEVELS}")
-    formats = set(request.formats)
-    if not formats or not formats <= set(FORMATS):
-        raise ValueError(f"formats must be a non-empty subset of {FORMATS}")
     if request.centroids and request.level not in g.CENTROID_LEVELS:
         raise ValueError(f"Centroids need one of the levels {g.CENTROID_LEVELS}")
     status = oi.name_status(root, request.name)
@@ -307,15 +302,8 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
     if total == 0:
         raise EmptyGridError("No cells were generated: check the AOI.")
 
-    files = []
-    keep_gpkg = "gpkg" in request.formats
-    if keep_gpkg:
-        files.append(f"{name}.gpkg")
-    if "shp" in request.formats:
-        logger.info("Converting to Shapefile")
-        files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{name}.shp", name)]
-        if request.centroids:
-            files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{centroids_layer}.shp", centroids_layer)]
+    # GPKG only: a Shapefile is made on demand when it is downloaded.
+    files = [f"{name}.gpkg"]
     write_aoi_geojson(aoi.geometry, part / md.AOI_FILE)
     files += [md.AOI_FILE, md.METADATA_FILE]
     preview = _build_preview(gpkg_tmp, name, level, part, work, cancel,
@@ -324,15 +312,14 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
 
     logger.info("Writing metadata")
     record = md.build_record(
-        name=name, aoi=aoi, level=level, formats=request.formats, files=files, cell_count=total,
+        name=name, aoi=aoi, level=level, formats=("gpkg",), files=files, cell_count=total,
         n_tiles=len(tiles), tile_deg=tile_deg, clip_buffer_deg=buf,
         duration_s=time.monotonic() - t0, versions=engine.versions(), generated_at=now, preview=preview,
         centroids_layer=centroids_layer if request.centroids else None,
     )
-    if keep_gpkg:
-        md.embed_in_gpkg(gpkg_tmp, name, record)
-        logger.info("Writing GeoPackage")
-        shutil.move(str(gpkg_tmp), str(part / f"{name}.gpkg"))
+    md.embed_in_gpkg(gpkg_tmp, name, record)
+    logger.info("Writing GeoPackage")
+    shutil.move(str(gpkg_tmp), str(part / f"{name}.gpkg"))
     md.write_metadata_json(record, part)
     return record, files, len(tiles), total
 

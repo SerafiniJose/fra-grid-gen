@@ -7,12 +7,10 @@ SEPAL folder, a shape drawn on the map, a set of points or an Earth Engine asset
 reads the geometry and shows its area, bounding box and the estimated number of r17
 cells. Points give at most one cell each: the cell that contains the point.
 
-**2 · Grid.** Pick a level in the table (r17 is the FRA level), check the output name and
-pick the formats:
+**2 · Grid.** Pick a level in the table (r17 is the FRA level), check the output name:
 
 - **Output name**: letters, digits, `_` and `-`. It is also the folder name. If a grid
   with that name exists, generating replaces it once the new one is complete.
-- **Formats**: GeoPackage (recommended) and/or Shapefile.
 
 Then press **Generate grid**. Above 2,000,000 estimated cells the app asks you to
 confirm first.
@@ -21,10 +19,11 @@ confirm first.
 the name. The grid being generated is the top row; its progress shows in the notification
 pill at the bottom right of the map, and **Cancel** stops it without leaving files. A grid
 that failed or was cancelled keeps its row: **Retry** (or **Generate**) runs it again with
-the same settings and AOI. Each grid has three icons, each with a tooltip:
+the same settings and AOI. Each grid has four icons, each with a tooltip:
 
 - show or hide the grid on the map,
 - details: its folder, files and sizes, map preview and metadata,
+- download the hexagons or the centroids as a zipped GeoPackage or Shapefile,
 - delete its folder.
 
 ### Grid levels
@@ -50,9 +49,8 @@ Each grid gets its own folder in `~/module_results/fra_grid_generator/<name>/`:
 
 | File | Content |
 |---|---|
-| `<name>.gpkg` | The cells (GeoPackage). The metadata is embedded too. |
-| `<name>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | The cells (Shapefile), if selected. |
-| `<name>_centroids` | Optional, r17 to r19: the centroids, a 1 ha square (100 m × 100 m, north-up) at each cell's centroid, with the cell's fields except `area_ha`. A second layer in the GeoPackage and, with Shapefile, `<name>_centroids.shp`. |
+| `<name>.gpkg` | The cells (GeoPackage). The metadata is embedded too. A Shapefile is made when you download one. |
+| `<name>_centroids` | Optional, r17 to r19: the centroids, a 1 ha square (100 m × 100 m, north-up) at each cell's centroid, with the cell's fields except `area_ha`. A second layer in the GeoPackage. |
 | `metadata.json` | How and when the grid was made: app and DGGRID versions, grid parameters, correction, AOI, files. |
 | `aoi.geojson` | The area of interest used. |
 
@@ -111,7 +109,7 @@ FRA cell that contains its centroid.
 - **One level per run.** Run the app again for another level.
 - **Size limits.** Above 2,000,000 estimated cells the app asks for confirmation; above
   10,000,000 it refuses. Use a smaller area or a coarser level.
-- **Shapefile.** Not available above 4,000,000 cells (2 GB file limit). Shapefiles also cut
+- **Shapefile.** Download only, not available above 4,000,000 cells (2 GB file limit). Shapefiles also cut
   field names to 10 characters and cannot embed the metadata. Prefer GeoPackage.
 - **180° meridian.** An area that crosses 180° is refused. Split it at 180° and generate
   each part. The column of cells that straddles 180° comes with the part that ends at

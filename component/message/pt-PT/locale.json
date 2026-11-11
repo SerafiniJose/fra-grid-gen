@@ -63,15 +63,9 @@
     "name_exists": "Já existe uma grelha com este nome. Gerar substitui a sua pasta.",
     "name_taken": "Existe uma pasta com este nome que não foi criada por esta aplicação. Escolha outro nome.",
     "name_exists_now": "Entretanto foi criada uma grelha com este nome noutro separador. Para a substituir, gere de novo a partir do separador Grelha; ou escolha outro nome.",
-    "formats_title": "Formatos",
-    "gpkg": "GeoPackage (.gpkg)",
-    "shp": "Shapefile (.shp)",
-    "shp_hint": "Máx. 2 GB por ficheiro (~4M células), nomes de campos de 10 caracteres, sem metadados incorporados.",
-    "shp_disabled": "Shapefile não está disponível acima de 4 000 000 de células estimadas.",
     "centroids": "Adicionar centroides (1 ha)",
     "centroids_hint": "Um quadrado de 100 m × 100 m no centroide de cada célula, escrito como segunda camada / ficheiro: <nome>_centroids.",
     "centroids_disabled": "Os centroides só estão disponíveis de r17 a r19: as células mais finas são menores do que o quadrado de 1 ha.",
-    "formats_empty": "Escolha pelo menos um formato.",
     "generate": "Gerar grelha",
     "cancel": "Cancelar",
     "blocked_hint": "Cerca de {cells} células, acima do limite de 10 000 000. Use uma AOI menor ou um nível mais grosseiro.",
@@ -122,7 +116,9 @@
       "no_details": "Sem detalhes: a grelha não foi escrita",
       "dismiss": "Remover da lista",
       "details": "Detalhes: ficheiros, AOI e execução",
-      "delete": "Eliminar esta grelha…"
+      "delete": "Eliminar esta grelha…",
+      "download": "Transferir…",
+      "no_download": "Nada para transferir: a grelha não foi escrita"
     }
   },
   "metadata": {
@@ -136,5 +132,18 @@
     "raw": "JSON bruto",
     "files": "Ficheiros",
     "total": "Total, com a pré-visualização no mapa"
+  },
+  "download": {
+    "title": "Transferir {name}",
+    "layer": "Camada",
+    "cells": "Hexágonos",
+    "centroids": "Centroides",
+    "format": "Formato",
+    "button": "Transferir",
+    "shp_disabled": "O Shapefile não está disponível acima de 4 000 000 de células.",
+    "failed": "Não foi possível preparar a transferência: {error}",
+    "gpkg": "GeoPackage (.gpkg)",
+    "shp": "Shapefile (.shp)",
+    "shp_hint": "Máx. 2 GB por ficheiro (~4M células), nomes de campos de 10 caracteres, sem metadados incorporados."
   }
 }

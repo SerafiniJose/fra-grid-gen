@@ -63,15 +63,9 @@
     "name_exists": "Ya existe una grilla con este nombre. Generarla reemplaza su carpeta.",
     "name_taken": "Existe una carpeta con este nombre que no creó esta aplicación. Elija otro nombre.",
     "name_exists_now": "Mientras tanto se creó una grilla con este nombre en otra pestaña. Para reemplazarla, genere de nuevo desde la pestaña Grilla; o elija otro nombre.",
-    "formats_title": "Formatos",
-    "gpkg": "GeoPackage (.gpkg)",
-    "shp": "Shapefile (.shp)",
-    "shp_hint": "Máx. 2 GB por archivo (~4M celdas), nombres de campo de 10 caracteres, sin metadatos incrustados.",
-    "shp_disabled": "El shapefile no está disponible por encima de 4.000.000 de celdas estimadas.",
     "centroids": "Agregar centroides (1 ha)",
     "centroids_hint": "Un cuadrado de 100 m × 100 m en el centroide de cada celda, escrito como segunda capa / archivo: <nombre>_centroids.",
     "centroids_disabled": "Los centroides solo están disponibles de r17 a r19: las celdas más finas son más pequeñas que el cuadrado de 1 ha.",
-    "formats_empty": "Elija al menos un formato.",
     "generate": "Generar grilla",
     "cancel": "Cancelar",
     "blocked_hint": "Unas {cells} celdas superan el límite de 10.000.000. Use una zona más pequeña o un nivel más grueso.",
@@ -122,7 +116,9 @@
       "no_details": "Sin detalles: la grilla no se escribió",
       "dismiss": "Quitar de la lista",
       "details": "Detalles: archivos, AOI y ejecución",
-      "delete": "Eliminar esta grilla…"
+      "delete": "Eliminar esta grilla…",
+      "download": "Descargar…",
+      "no_download": "Nada que descargar: la grilla no se escribió"
     }
   },
   "metadata": {
@@ -136,5 +132,18 @@
     "raw": "JSON completo",
     "files": "Archivos",
     "total": "Total, con la vista en el mapa"
+  },
+  "download": {
+    "title": "Descargar {name}",
+    "layer": "Capa",
+    "cells": "Hexágonos",
+    "centroids": "Centroides",
+    "format": "Formato",
+    "button": "Descargar",
+    "shp_disabled": "El shapefile no está disponible por encima de 4.000.000 de celdas.",
+    "failed": "No se pudo preparar la descarga: {error}",
+    "gpkg": "GeoPackage (.gpkg)",
+    "shp": "Shapefile (.shp)",
+    "shp_hint": "Máx. 2 GB por archivo (~4M celdas), nombres de campo de 10 caracteres, sin metadatos incrustados."
   }
 }

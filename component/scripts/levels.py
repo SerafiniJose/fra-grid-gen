@@ -49,7 +49,6 @@ class LevelEstimate:
     stats: LevelStats
     cells: int
     verdict: str
-    shp_allowed: bool
 
 
 def level_stats(level: int) -> LevelStats:
@@ -90,12 +89,10 @@ def estimate_levels(area_km2: float, perimeter_km: dict, n_points: int | None) -
     rows = []
     for s in all_levels():
         cells = estimate_cells(s.level, area_km2, perimeter_km.get(s.level, 0.0), n_points)
-        rows.append(
-            LevelEstimate(stats=s, cells=cells, verdict=verdict(cells), shp_allowed=cells <= g.SHP_MAX_CELLS)
-        )
+        rows.append(LevelEstimate(stats=s, cells=cells, verdict=verdict(cells)))
     return rows
 
 
 def estimated_size_bytes(cells: int) -> int:
-    """GPKG plus the map preview (the Shapefile, when ticked, comes on top)."""
+    """GPKG plus the map preview."""
     return int(cells) * (_BYTES_PER_CELL + _PREVIEW_BYTES_PER_CELL)

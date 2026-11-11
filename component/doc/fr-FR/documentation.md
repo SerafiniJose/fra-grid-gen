@@ -9,11 +9,10 @@ nombre estimé de cellules r17. Les points donnent au plus une cellule chacun : 
 qui contient le point.
 
 **2 · Grille.** Choisissez un niveau dans le tableau (r17 est le niveau FRA), vérifiez le
-nom de sortie et choisissez les formats :
+nom de sortie :
 
 - **Nom de sortie** : lettres, chiffres, `_` et `-`. C'est aussi le nom du dossier. Si une
   grille porte déjà ce nom, la générer la remplace une fois la nouvelle terminée.
-- **Formats** : GeoPackage (recommandé) et/ou Shapefile.
 
 Appuyez ensuite sur **Générer la grille**. Au-delà de 2 000 000 cellules estimées,
 l'application demande d'abord une confirmation.
@@ -23,10 +22,11 @@ en premier, avec son AOI sous le nom. La grille en cours de génération est la 
 ligne ; sa progression s'affiche dans la pastille de notifications, en bas à droite de la
 carte, et **Annuler** l'arrête sans laisser de fichiers. Une grille en échec ou annulée garde
 sa ligne : **Réessayer** (ou **Générer**) la relance avec les mêmes paramètres et la même
-AOI. Chaque grille a trois icônes, chacune avec une info-bulle :
+AOI. Chaque grille a quatre icônes, chacune avec une info-bulle :
 
 - afficher ou masquer la grille sur la carte,
 - détails : son dossier, ses fichiers et leur taille, l'aperçu cartographique et les métadonnées,
+- télécharger les hexagones ou les centroïdes en GeoPackage ou Shapefile compressé (zip),
 - supprimer son dossier.
 
 ### Niveaux de grille
@@ -53,9 +53,8 @@ Chaque grille a son propre dossier dans `~/module_results/fra_grid_generator/<no
 
 | Fichier | Contenu |
 |---|---|
-| `<nom>.gpkg` | Les cellules (GeoPackage). Les métadonnées y sont aussi intégrées. |
-| `<nom>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | Les cellules (Shapefile), si sélectionné. |
-| `<nom>_centroids` | Optionnel, r17 à r19 : les centroïdes, un carré de 1 ha (100 m × 100 m, orienté au nord) sur le centroïde de chaque cellule, avec les champs de la cellule sauf `area_ha`. Une deuxième couche dans le GeoPackage et, avec Shapefile, `<nom>_centroids.shp`. |
+| `<nom>.gpkg` | Les cellules (GeoPackage). Les métadonnées y sont aussi intégrées. Le Shapefile est créé au téléchargement. |
+| `<nom>_centroids` | Optionnel, r17 à r19 : les centroïdes, un carré de 1 ha (100 m × 100 m, orienté au nord) sur le centroïde de chaque cellule, avec les champs de la cellule sauf `area_ha`. Une deuxième couche dans le GeoPackage. |
 | `metadata.json` | Comment et quand la grille a été créée : versions de l'application et de DGGRID, paramètres de la grille, correction, AOI, fichiers. |
 | `aoi.geojson` | La zone d'intérêt utilisée. |
 
@@ -118,7 +117,7 @@ qui contient son centroïde.
 - **Limites de taille.** Au-delà de 2 000 000 cellules estimées, l'application demande une
   confirmation ; au-delà de 10 000 000, elle refuse. Utilisez une zone plus petite ou un
   niveau plus grossier.
-- **Shapefile.** Non disponible au-delà de 4 000 000 cellules (limite de fichier de 2 Go).
+- **Shapefile.** Au téléchargement uniquement ; non disponible au-delà de 4 000 000 cellules (limite de fichier de 2 Go).
   Les Shapefiles tronquent aussi les noms de champs à 10 caractères et ne peuvent pas
   intégrer les métadonnées. Préférez GeoPackage.
 - **Méridien 180°.** Une zone qui traverse 180° est refusée. Divisez-la à 180° et générez

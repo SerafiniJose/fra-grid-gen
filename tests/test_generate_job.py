@@ -98,7 +98,7 @@ def test_success_publishes_result_and_toast():
     assert state.cancel_event.value is None
 
 
-def test_start_records_formats_and_request():
+def test_start_records_the_request():
     state, notifier = AppState(), FakeNotifier()
     release = threading.Event()
 
@@ -106,10 +106,10 @@ def test_start_records_formats_and_request():
         release.wait(5)
         return _result()
 
-    request = BuildRequest(aoi=object(), level=17, name="g", formats=("gpkg", "shp"))
+    request = BuildRequest(aoi=object(), level=17, name="g")
     gj.start_generation(state, request, notifier, TEXTS, build=build)
     job = state.job.value
-    assert (job.formats, job.request) == (("gpkg", "shp"), request)
+    assert (job.name, job.request) == ("g", request)
     release.set()
     _wait_idle(state)
 

@@ -2,7 +2,7 @@
 
 One table, laid out like the deforestation-alerts lists: a flexible name column
 (with the AOI under it), level, cells, a Status cell that holds the job's
-action (Cancel, Retry, Generate), and three action icons that never move and
+action (Cancel, Retry, Generate), and four action icons that never move and
 only switch on and off, each with its tooltip. The job's progress lives in the
 notification pill; a grid's files, preview and metadata in its Details dialog.
 """
@@ -24,6 +24,7 @@ from component.scripts.solara_threads import spawn_in_context
 from component.scripts.writers import human_size
 from component.tile.grid_tile import hide_from_map, show_on_map, zoom_hint_visible
 from component.widget.confirm_dialog import ConfirmDialog
+from component.widget.download_dialog import DownloadDialog
 from component.widget.levels_table import compact
 from component.widget.metadata_dialog import MetadataDialog
 
@@ -99,9 +100,9 @@ def start_delete(state, map_, root, output, notifier) -> bool:
     return True
 
 
-# Grid | Level | Cells | Status | three 24 px actions (+8). The name keeps about
-# 160 px in the 520 px panel (deforestation-alerts asks at least 120).
-_GRID = ("display: grid; grid-template-columns: minmax(0, 1fr) 48px 56px 96px 80px; align-items: center; "
+# Grid | Level | Cells | Status | four 24 px actions (+8). The name keeps about
+# 136 px in the 520 px panel (deforestation-alerts asks at least 120).
+_GRID = ("display: grid; grid-template-columns: minmax(0, 1fr) 48px 56px 96px 104px; align-items: center; "
          "column-gap: 8px; width: 100%;")
 _LINE = "rgba(127, 127, 127, 0.3)"
 _HEAD = (f"{_GRID} padding: 4px 8px 6px; border-bottom: 2px solid {_LINE}; font-size: 0.72rem; font-weight: 600; "
@@ -163,7 +164,7 @@ def _header():
 
 def job_row(state, job, notifier):
     """The job's row while it runs or after it failed or was cancelled (a done job is a grid row)."""
-    settings = " · ".join(p for p in (f"r{job.level}", job.aoi_label, ", ".join(f.upper() for f in job.formats)) if p)
+    settings = " · ".join(p for p in (f"r{job.level}", job.aoi_label) if p)
     wait = t("outputs.tip.wait_ready") if job.running else None
     with rv.Html(tag="div", style_=_ROW):
         _name_cell(job.name, job.aoi_label)
@@ -183,6 +184,7 @@ def job_row(state, job, notifier):
         def actions():
             _action("mdi-map-plus", wait or t("outputs.tip.no_map"), None, disabled=True)
             _action("mdi-information-outline", wait or t("outputs.tip.no_details"), None, disabled=True)
+            _action("mdi-download", wait or t("outputs.tip.no_download"), None, disabled=True)
             _action("mdi-delete-outline", t("outputs.tip.wait_finish") if job.running else t("outputs.tip.dismiss"),
                     lambda: dismiss_job(state), disabled=job.running)
 
@@ -193,8 +195,8 @@ def job_row(state, job, notifier):
 
 
 @solara.component
-def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_details, on_delete, loading=None,
-            deleting=None):
+def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_details, on_delete, on_download=None,
+            loading=None, deleting=None):
     with rv.Html(tag="div", style_=_ROW):
         _name_cell(out.name, out.aoi_label)
         _level_cell(out.level)
@@ -211,8 +213,9 @@ def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_detai
                 map_tip = t("outputs.hide") if shown else t("outputs.show")
             _action("mdi-map-minus" if shown else "mdi-map-plus", map_tip, on_preview,
                     disabled=not can_preview or loading is not None or deleting == out.name,
-                    color="primary" if shown else "grey darken-1", loading=loading == out.name)
-            _action("mdi-information-outline", t("outputs.tip.details"), on_details, color="grey darken-1")
+                    color="primary" if shown else None, loading=loading == out.name)
+            _action("mdi-information-outline", t("outputs.tip.details"), on_details)
+            _action("mdi-download", t("outputs.tip.download"), on_download, disabled=deleting == out.name)
             _action("mdi-delete-outline", t("outputs.busy") if busy else t("outputs.tip.delete"), on_delete,
                     disabled=busy or deleting is not None, loading=deleting == out.name)
 
@@ -226,6 +229,7 @@ def OutputsTile(state, map_):
     notifier = use_notifications()
     to_delete, set_to_delete = solara.use_state(None)
     details, set_details = solara.use_state(None)
+    to_download, set_to_download = solara.use_state(None)
     root = results_dir()
     # Re-listed on opening the tab too: another tab or the file manager may have changed the folder.
     on_tab = state.active_tab.value == 2
@@ -256,6 +260,7 @@ def OutputsTile(state, map_):
                     on_preview=lambda o=out: toggle_preview(state, map_, o, notifier),
                     on_details=lambda o=out: set_details(o),
                     on_delete=lambda o=out: set_to_delete(o),
+                    on_download=lambda o=out: set_to_download(o),
                     loading=state.preview_loading.value,
                     deleting=state.deleting.value,
                 ).key(out.name)
@@ -278,3 +283,4 @@ def OutputsTile(state, map_):
     )
     MetadataDialog(output=details, plan=plans.get(details.name) if details else None,
                    on_close=lambda: set_details(None))
+    DownloadDialog(output=to_download, on_close=lambda: set_to_download(None), notifier=notifier)

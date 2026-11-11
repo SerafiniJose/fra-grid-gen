@@ -7,10 +7,11 @@ dggridR), which is not part of this repository.
 
 - One level per run. Cells finer than r17 carry `fra_r17_id`, the FRA cell that contains their centre.
 - Outputs go to `~/module_results/fra_grid_generator/<name>/`. Each folder holds
-  `<name>.gpkg` and/or the Shapefile set, `metadata.json` and `aoi.geojson`. The
+  `<name>.gpkg`, `metadata.json` and `aoi.geojson` (grids from before GPKG-only may hold Shapefiles instead).
+  A Shapefile is made only on download, from the GPKG, into the zip. The
   GeoPackage also embeds the metadata (`gpkg_metadata`).
 - Optional centroids (r17–r19): a 1 ha north-up square at each cell's centroid, written as a second
-  GeoPackage layer `<name>_centroids` (and `<name>_centroids.shp` with Shapefile). `metadata.json` records it
+  GeoPackage layer `<name>_centroids`. `metadata.json` records it
   under `"centroids": {"layer": ..., "side_m": 100.0}`, or `null`.
 - Map preview: every run also writes a hidden `.preview.pmtiles` (cell outlines, `global_id` only) into
   the grid folder with tippecanoe, so "Show on map" works at any size. The centroids, when present, are a
@@ -26,7 +27,7 @@ dggridR), which is not part of this repository.
   (6.8 MB at z6 for 651k r17 cells, more at z3), so very large grids are slow to draw at those zooms. Grids without a preview
   (older folders) are drawn cell by cell, up to 50,000 cells. Grids built before the zoom 3 change keep their
   old min zoom until regenerated.
-- Limits: a warning at 2,000,000 estimated cells, a block above 10,000,000. The Shapefile option is
+- Limits: a warning at 2,000,000 estimated cells, a block above 10,000,000. The Shapefile download is
   unavailable above 4,000,000 cells (2 GB per file, 10-character field names, no embedded metadata).
 
 - `area_ha` is the geodesic cell area on the WGS84 ellipsoid (pyproj `Geod`). The R script's

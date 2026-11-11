@@ -22,7 +22,6 @@ class JobState:
     name: str = ""
     level: int = 0
     message: str = ""
-    formats: tuple = ()
     request: object = None  # the BuildRequest it runs: Retry starts it again
 
     @property
@@ -46,7 +45,6 @@ class AppState:
         self.level = solara.reactive(g.FRA_LEVEL)
         self.out_name = solara.reactive("")
         self.name_edited = solara.reactive(False)  # user typed: stop auto-naming
-        self.formats = solara.reactive(frozenset({"gpkg"}))
         self.centroids = solara.reactive(False)  # add the centroids (1 ha squares)
         # Job
         self.job = solara.reactive(JobState())

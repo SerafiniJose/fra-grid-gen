@@ -8,11 +8,10 @@ Engine. La aplicación lee la geometría y muestra su área, su recuadro y el n�
 de celdas r17. Los puntos dan como máximo una celda cada uno: la que contiene el punto.
 
 **2 · Grilla.** Elige un nivel en la tabla (r17 es el nivel FRA), revisa el nombre de
-salida y elige los formatos:
+salida:
 
 - **Nombre de salida**: letras, dígitos, `_` y `-`. También es el nombre de la carpeta. Si
   ya existe una grilla con ese nombre, se reemplaza cuando la nueva está completa.
-- **Formatos**: GeoPackage (recomendado) y/o Shapefile.
 
 Luego pulsa **Generar grilla**. Por encima de 2.000.000 de celdas estimadas, la aplicación
 pide confirmación antes de empezar.
@@ -22,10 +21,11 @@ primero, con su AOI bajo el nombre. La grilla que se está generando es la prime
 avance aparece en la píldora de notificaciones, abajo a la derecha del mapa, y **Cancelar**
 la detiene sin dejar archivos. Una grilla que falló o se canceló conserva su fila:
 **Reintentar** (o **Generar**) la vuelve a generar con la misma configuración y AOI. Cada
-grilla tiene tres iconos, cada uno con su descripción:
+grilla tiene cuatro iconos, cada uno con su descripción:
 
 - mostrar u ocultar la grilla en el mapa,
 - detalles: su carpeta, archivos y tamaños, vista en el mapa y metadatos,
+- descargar los hexágonos o los centroides como GeoPackage o Shapefile comprimido (zip),
 - borrar su carpeta.
 
 ### Niveles de la grilla
@@ -51,9 +51,8 @@ Cada grilla tiene su propia carpeta en `~/module_results/fra_grid_generator/<nom
 
 | Archivo | Contenido |
 |---|---|
-| `<nombre>.gpkg` | Las celdas (GeoPackage). También incluye los metadatos. |
-| `<nombre>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | Las celdas (Shapefile), si lo elegiste. |
-| `<nombre>_centroids` | Opcional, r17 a r19: los centroides, un cuadrado de 1 ha (100 m × 100 m, orientado al norte) en el centroide de cada celda, con los campos de la celda salvo `area_ha`. Una segunda capa en el GeoPackage y, con Shapefile, `<nombre>_centroids.shp`. |
+| `<nombre>.gpkg` | Las celdas (GeoPackage). También incluye los metadatos. El Shapefile se genera al descargarlo. |
+| `<nombre>_centroids` | Opcional, r17 a r19: los centroides, un cuadrado de 1 ha (100 m × 100 m, orientado al norte) en el centroide de cada celda, con los campos de la celda salvo `area_ha`. Una segunda capa en el GeoPackage. |
 | `metadata.json` | Cómo y cuándo se generó la grilla: versiones de la app y de DGGRID, parámetros de la grilla, corrección, AOI, archivos. |
 | `aoi.geojson` | La zona de interés utilizada. |
 
@@ -114,7 +113,7 @@ con la grilla FRA, usa `fra_r17_id`: la celda FRA que contiene su centroide.
 - **Límites de tamaño.** Por encima de 2.000.000 de celdas estimadas la aplicación pide
   confirmación; por encima de 10.000.000 no genera la grilla. Usa una zona más pequeña o un
   nivel más grueso.
-- **Shapefile.** No disponible por encima de 4.000.000 de celdas (límite de 2 GB por
+- **Shapefile.** Solo al descargar; no disponible por encima de 4.000.000 de celdas (límite de 2 GB por
   archivo). Además, los Shapefile recortan los nombres de campo a 10 caracteres y no
   pueden incluir los metadatos. Es preferible GeoPackage.
 - **Meridiano de 180°.** Una zona que cruza los 180° se rechaza. Divídela en 180° y genera

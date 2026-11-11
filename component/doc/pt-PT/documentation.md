@@ -7,12 +7,10 @@ sua pasta SEPAL, uma forma desenhada no mapa, um conjunto de pontos ou um asset 
 Engine. A aplicação lê a geometria e mostra a sua área, a extensão e o número estimado de
 células r17. Os pontos dão no máximo uma célula cada: a célula que contém o ponto.
 
-**2 · Grelha.** Escolha um nível na tabela (r17 é o nível FRA), verifique o nome de saída
-e escolha os formatos:
+**2 · Grelha.** Escolha um nível na tabela (r17 é o nível FRA), verifique o nome de saída:
 
 - **Nome de saída**: letras, dígitos, `_` e `-`. É também o nome da pasta. Se já existir
   uma grelha com esse nome, gerar substitui-a quando a nova estiver concluída.
-- **Formatos**: GeoPackage (recomendado) e/ou Shapefile.
 
 Depois prima **Gerar grelha**. Acima de 2 000 000 de células estimadas, a aplicação pede
 primeiro uma confirmação.
@@ -21,11 +19,12 @@ primeiro uma confirmação.
 primeiro, com a AOI por baixo do nome. A grelha a ser gerada é a primeira linha; o progresso
 aparece na pílula de notificações, em baixo à direita do mapa, e **Cancelar** para-a sem
 deixar ficheiros. Uma grelha que falhou ou foi cancelada mantém a sua linha: **Repetir** (ou
-**Gerar**) gera-a de novo com as mesmas definições e AOI. Cada grelha tem três ícones,
+**Gerar**) gera-a de novo com as mesmas definições e AOI. Cada grelha tem quatro ícones,
 cada um com a sua descrição:
 
 - mostrar ou ocultar a grelha no mapa,
 - detalhes: a pasta, os ficheiros e tamanhos, a pré-visualização no mapa e os metadados,
+- transferir os hexágonos ou os centroides em GeoPackage ou Shapefile comprimido (zip),
 - eliminar a sua pasta.
 
 ### Níveis da grelha
@@ -52,9 +51,8 @@ Cada grelha tem a sua própria pasta em `~/module_results/fra_grid_generator/<no
 
 | Ficheiro | Conteúdo |
 |---|---|
-| `<nome>.gpkg` | As células (GeoPackage). Os metadados também vão incorporados. |
-| `<nome>.shp` + `.shx`, `.dbf`, `.prj`, `.cpg` | As células (Shapefile), se selecionado. |
-| `<nome>_centroids` | Opcional, r17 a r19: os centroides, um quadrado de 1 ha (100 m × 100 m, orientado a norte) no centroide de cada célula, com os campos da célula exceto `area_ha`. Uma segunda camada no GeoPackage e, com Shapefile, `<nome>_centroids.shp`. |
+| `<nome>.gpkg` | As células (GeoPackage). Os metadados também vão incorporados. O Shapefile é criado ao transferi-lo. |
+| `<nome>_centroids` | Opcional, r17 a r19: os centroides, um quadrado de 1 ha (100 m × 100 m, orientado a norte) no centroide de cada célula, com os campos da célula exceto `area_ha`. Uma segunda camada no GeoPackage. |
 | `metadata.json` | Como e quando a grelha foi criada: versões da aplicação e do DGGRID, parâmetros da grelha, correção, AOI, ficheiros. |
 | `aoi.geojson` | A área de interesse utilizada. |
 
@@ -113,7 +111,7 @@ célula mais fina à grelha FRA, use `fra_r17_id`: a célula FRA que contém o s
 - **Um nível por execução.** Execute a aplicação novamente para outro nível.
 - **Limites de tamanho.** Acima de 2 000 000 de células estimadas a aplicação pede
   confirmação; acima de 10 000 000 recusa. Use uma área menor ou um nível mais grosseiro.
-- **Shapefile.** Não disponível acima de 4 000 000 de células (limite de ficheiro de
+- **Shapefile.** Só na transferência; não disponível acima de 4 000 000 de células (limite de ficheiro de
   2 GB). Os Shapefiles também cortam os nomes dos campos a 10 caracteres e não podem
   incorporar os metadados. Prefira GeoPackage.
 - **Meridiano 180°.** Uma área que atravessa 180° é recusada. Divida-a em 180° e gere cada

@@ -63,15 +63,9 @@
     "name_exists": "A grid with this name exists. Generating replaces its folder.",
     "name_taken": "A folder with this name exists and was not made by this app. Choose another name.",
     "name_exists_now": "A grid with this name was made in another tab meanwhile. To replace it, generate again from the Grid tab; or choose another name.",
-    "formats_title": "Formats",
-    "gpkg": "GeoPackage (.gpkg)",
-    "shp": "Shapefile (.shp)",
-    "shp_hint": "Max 2 GB per file (~4M cells), 10-character field names, no embedded metadata.",
-    "shp_disabled": "Shapefile is unavailable above 4,000,000 estimated cells.",
     "centroids": "Add centroids (1 ha)",
     "centroids_hint": "A 100 m × 100 m square at each cell's centroid, written as a second layer / file: <name>_centroids.",
     "centroids_disabled": "Centroids are available for r17 to r19 only: finer cells are smaller than the 1 ha square.",
-    "formats_empty": "Pick at least one format.",
     "generate": "Generate grid",
     "cancel": "Cancel",
     "blocked_hint": "About {cells} cells is over the 10,000,000 limit. Use a smaller AOI or a coarser level.",
@@ -122,7 +116,9 @@
       "no_details": "No details: the grid was not written",
       "dismiss": "Remove from the list",
       "details": "Details: files, AOI and run",
-      "delete": "Delete this grid…"
+      "delete": "Delete this grid…",
+      "download": "Download…",
+      "no_download": "Nothing to download: the grid was not written"
     }
   },
   "metadata": {
@@ -136,5 +132,18 @@
     "raw": "Raw JSON",
     "files": "Files",
     "total": "Total, with the map preview"
+  },
+  "download": {
+    "title": "Download {name}",
+    "layer": "Layer",
+    "cells": "Hexagons",
+    "centroids": "Centroids",
+    "format": "Format",
+    "button": "Download",
+    "shp_disabled": "Shapefile is unavailable above 4,000,000 cells.",
+    "failed": "Could not prepare the download: {error}",
+    "gpkg": "GeoPackage (.gpkg)",
+    "shp": "Shapefile (.shp)",
+    "shp_hint": "Max 2 GB per file (~4M cells), 10-character field names, no embedded metadata."
   }
 }

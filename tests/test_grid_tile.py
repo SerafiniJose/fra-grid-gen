@@ -5,13 +5,7 @@ import ipyvuetify as v
 
 from component.tile import grid_tile as gt
 
-OK = dict(running=False, name_error=None, name_state="free", formats=("gpkg",), verdict="ok", engine_ok=True)
-
-
-def test_effective_formats_drops_shp_when_not_allowed():
-    assert gt.effective_formats(frozenset({"shp", "gpkg"}), True) == ("gpkg", "shp")
-    assert gt.effective_formats(frozenset({"shp", "gpkg"}), False) == ("gpkg",)
-    assert gt.effective_formats(frozenset({"shp"}), False) == ()
+OK = dict(running=False, name_error=None, name_state="free", verdict="ok", engine_ok=True)
 
 
 def test_block_reason_order():
@@ -20,7 +14,6 @@ def test_block_reason_order():
     assert gt.block_reason(**{**OK, "running": True}) == "grid.generate"
     assert gt.block_reason(**{**OK, "name_error": "invalid"}) == "grid.name_error.invalid"
     assert gt.block_reason(**{**OK, "name_state": "taken"}) == "grid.name_taken"
-    assert gt.block_reason(**{**OK, "formats": ()}) == "grid.formats_empty"
     assert gt.block_reason(**{**OK, "verdict": "blocked"}) == "grid.blocked_hint"
     assert gt.block_reason(**{**OK, "name_state": "grid", "verdict": "warn"}) is None
 
