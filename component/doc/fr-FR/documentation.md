@@ -128,7 +128,7 @@ qui contient son centroïde.
   deux diffèrent de moins de 1 %, selon la latitude.
 - **Aperçu cartographique.** Chaque grille a un fichier d'aperçu caché qui permet à la
   carte de la dessiner à n'importe quelle taille. Les cellules s'affichent à partir du
-  zoom 6 ; zoomez davantage pour voir les hexagones individuels des niveaux plus fins. Les
+  zoom 3 ; zoomez davantage pour voir les hexagones individuels des niveaux plus fins. Les
   centroïdes, si la grille en a, sont une couche à part qui s'affiche
   à partir du zoom 12. L'aperçu n'est
   pas un des fichiers de sortie.

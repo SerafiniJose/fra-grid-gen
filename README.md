@@ -18,13 +18,13 @@ dggridR), which is not part of this repository.
   `metadata.json`'s `run.files` nor in the file lists, and it goes with the folder. `metadata.json` records it as
   `"preview": {"file": ".preview.pmtiles", "minzoom": m, "maxzoom": M}`, or `null` when it was skipped
   (tippecanoe missing or failing only skips the preview, with a warning; the grid is kept). Zoom ranges:
-  every level from zoom 6, up to r17 13, r18 14, r19 15, r20 15, r21 16. Where a cell is under a pixel,
+  every level from zoom 3, up to r17 13, r18 14, r19 15, r20 15, r21 16. Where a cell is under a pixel,
   tippecanoe merges cells into small stand-in squares, so a fine grid reads as its footprint until the
-  hexagons appear (r21 from z9, r17 from z6). Below zoom 6 the map shows only the AOI outline and a "Zoom in
+  hexagons appear (r21 from z9, r17 from z6). Below zoom 3 the map shows only the AOI outline and a "Zoom in
   to see the cells" hint, past the max the browser overzooms. Cost: about 130 bytes and 30 µs per cell
-  (7 s and 30 MB for 225k r17 cells, 21 s and 85 MB for 651k). The z6 tile carries every cell under it
-  (6.8 MB for 651k r17 cells), so very large grids are slow to draw at that zoom. Grids without a preview
-  (older folders) are drawn cell by cell, up to 50,000 cells. Grids built before the zoom 6 change keep their
+  (7 s and 30 MB for 225k r17 cells, 21 s and 85 MB for 651k). The lowest-zoom tiles carry every cell under them
+  (6.8 MB at z6 for 651k r17 cells, more at z3), so very large grids are slow to draw at those zooms. Grids without a preview
+  (older folders) are drawn cell by cell, up to 50,000 cells. Grids built before the zoom 3 change keep their
   old min zoom until regenerated.
 - Limits: a warning at 2,000,000 estimated cells, a block above 10,000,000. The Shapefile option is
   unavailable above 4,000,000 cells (2 GB per file, 10-character field names, no embedded metadata).

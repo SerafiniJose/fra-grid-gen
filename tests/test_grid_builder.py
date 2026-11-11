@@ -352,7 +352,7 @@ def test_preview_is_built_but_not_a_deliverable(results_root, chaco_aoi, caplog)
         res = gb.build_grid(gb.BuildRequest(chaco_aoi, 18, "pv", formats=("shp",)))  # shp-only still previews
     preview = res.folder / ".preview.pmtiles"
     assert preview.read_bytes()[:7] == b"PMTiles"
-    assert res.metadata["preview"] == {"file": ".preview.pmtiles", "minzoom": 6, "maxzoom": 14}
+    assert res.metadata["preview"] == {"file": ".preview.pmtiles", "minzoom": 3, "maxzoom": 14}
     assert md.read_metadata_json(res.folder)["preview"] == res.metadata["preview"]
     assert ".preview.pmtiles" not in res.metadata["run"]["files"]
     assert preview not in res.files

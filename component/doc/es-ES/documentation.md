@@ -123,7 +123,7 @@ con la grilla FRA, usa `fra_r17_id`: la celda FRA que contiene su centroide.
 - **`area_ha`.** Se mide sobre el elipsoide WGS84. El script R mide sobre una esfera; la
   diferencia es menor al 1 %, según la latitud.
 - **Vista previa del mapa.** Cada grilla tiene un archivo oculto de vista previa que permite
-  dibujarla en el mapa a cualquier tamaño. Las celdas se ven desde el zoom 6; acerca más
+  dibujarla en el mapa a cualquier tamaño. Las celdas se ven desde el zoom 3; acerca más
   para ver los hexágonos de los niveles más finos. Los centroides, si la grilla los
   tiene, son una capa aparte que se ve desde el zoom 12. La vista previa no es uno de los
   archivos de salida.

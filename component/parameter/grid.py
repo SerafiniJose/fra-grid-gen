@@ -31,11 +31,11 @@ PREVIEW_LAYER = "cells"  # tippecanoe -l name = MapLibre source-layer
 # (~2.5 px a centroid): below that tippecanoe would draw them as merged blotches.
 PREVIEW_CENTROIDS_LAYER = "centroids"
 PREVIEW_CENTROIDS_MINZOOM = 12
-# Web-map zoom range per level. Every level starts at zoom 6 (country scale):
+# Web-map zoom range per level. Every level starts at zoom 3 (continent scale):
 # where a cell is under a pixel, tippecanoe merges cells into stand-in squares
 # (r21 shows real hexagons from z9, r17 from z6). Nothing is drawn below the min
 # zoom; past the max the browser overzooms.
-PREVIEW_MIN_ZOOM = 6
+PREVIEW_MIN_ZOOM = 3
 PREVIEW_ZOOMS = {17: (PREVIEW_MIN_ZOOM, 13), 18: (PREVIEW_MIN_ZOOM, 14), 19: (PREVIEW_MIN_ZOOM, 15),
                  20: (PREVIEW_MIN_ZOOM, 15), 21: (PREVIEW_MIN_ZOOM, 16)}
 

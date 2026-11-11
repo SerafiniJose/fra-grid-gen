@@ -119,7 +119,7 @@ FRA cell that contains its centroid.
 - **`area_ha`.** Measured on the WGS84 ellipsoid. The R script measures on a sphere; the two
   differ by less than 1 %, depending on latitude.
 - **Map preview.** Each grid has a hidden preview file that lets the map draw it at any
-  size. Cells show from zoom 6; zoom in further to see the individual hexagons of finer
+  size. Cells show from zoom 3; zoom in further to see the individual hexagons of finer
   levels. The centroids, when the grid has them, are a separate layer that shows from
   zoom 12. The preview is not
   one of the output files.

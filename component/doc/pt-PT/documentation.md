@@ -121,7 +121,7 @@ célula mais fina à grelha FRA, use `fra_r17_id`: a célula FRA que contém o s
 - **`area_ha`.** Medida no elipsoide WGS84. O script R mede numa esfera; as duas diferem
   menos de 1 %, consoante a latitude.
 - **Pré-visualização no mapa.** Cada grelha tem um ficheiro de pré-visualização oculto que
-  permite ao mapa desenhá-la em qualquer tamanho. As células aparecem a partir do zoom 6;
+  permite ao mapa desenhá-la em qualquer tamanho. As células aparecem a partir do zoom 3;
   aproxime mais para ver os hexágonos individuais dos níveis mais finos. Os centroides,
   quando a grelha os tem, são uma camada à parte que aparece a partir
   do zoom 12. A pré-visualização não é um
