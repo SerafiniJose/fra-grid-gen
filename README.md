@@ -46,7 +46,7 @@ Or `micromamba activate fra-grid` first, then `./run_solara.sh`. A local run nee
 credentials in a `.env` file at the repo root (`run_solara.sh` sources it): `PYSEPAL_DEV_AUTH=1`,
 `LOCAL_SEPAL_USER`, `LOCAL_SEPAL_PASSWORD` and `SEPAL_HOST`. Never commit `.env` (it is git-ignored).
 
-On SEPAL the module runs through `ui.ipynb` (kernel `venv-fra_grid_generator`). There the map preview's
+On SEPAL the module runs through `ui.ipynb` (kernel `venv-fra-grid-gen`). There the map preview's
 tile server is reached through SEPAL's jupyter-server-proxy (`LOCALTILESERVER_CLIENT_PREFIX`, copied to
 `VECTORTILESERVER_CLIENT_PREFIX` at startup); locally through the jupyter-loopback comm bridge.
 
