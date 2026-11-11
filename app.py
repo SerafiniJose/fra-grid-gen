@@ -23,8 +23,8 @@ from component.parameter import grid as g
 from component.parameter.directory import results_dir
 from component.scripts.map_layers import sync_draw_control_visibility
 from component.scripts.notify_bridge import install_task_log_handler
-from component.scripts.outputs_index import cleanup_stale
-from component.scripts.scratch import configure_gdal_tmpdir
+from component.scripts.outputs_index import STALE_AGE_S, cleanup_stale
+from component.scripts.scratch import cleanup_local_scratch, configure_gdal_tmpdir
 from component.scripts.tile_proxy import borrow_localtileserver_prefix, loopback_bridge_needed, prefer_http_proxy
 from component.tile.aoi_tile import AoiTile
 from component.tile.grid_tile import GridTile
@@ -43,7 +43,7 @@ prefer_http_proxy()
 # GDAL scratch files must never land in the read-only CWD on SEPAL.
 configure_gdal_tmpdir()
 # Leftovers of a run killed mid-write (server restart, instance stop).
-_removed = cleanup_stale(results_dir())
+_removed = cleanup_stale(results_dir()) + cleanup_local_scratch(STALE_AGE_S)
 if _removed:
     logger.info("Removed unfinished folders: %s", ", ".join(_removed))
 

@@ -9,7 +9,6 @@ browser.
 """
 
 import asyncio
-import inspect
 import logging
 import threading
 from contextlib import contextmanager
@@ -55,17 +54,8 @@ def install_task_log_handler(level: int = logging.INFO) -> TaskStepLogHandler:
         return handler
 
 
-def tile_progress_reporter(task, format_detail=None):
-    """``on_progress(done, total, cells)`` -> ``task.set_progress`` at whole-percent steps.
-
-    pysepal 4.1's ``set_progress`` has no ``detail`` kwarg; the reporter detects
-    that once and sends plain values. A later pysepal with ``detail=`` gets the
-    "Tile i/n · cells" text without a code change here.
-    """
-    try:
-        detail_supported = "detail" in inspect.signature(task.set_progress).parameters
-    except (TypeError, ValueError):
-        detail_supported = False
+def tile_progress_reporter(task):
+    """``on_progress(done, total, cells)`` -> ``task.set_progress`` at whole-percent steps."""
     last_pct = None
 
     def on_progress(done, total, cells):
@@ -73,20 +63,15 @@ def tile_progress_reporter(task, format_detail=None):
         if not total:
             return
         pct = int(done * 100 / total)
-        if pct == last_pct:
-            return
-        last_pct = pct
-        if detail_supported:
-            detail = format_detail(done, total, cells) if format_detail else f"Tile {done}/{total} · {cells:,} cells"
-            task.set_progress(done / total, detail=detail)
-        else:
+        if pct != last_pct:
+            last_pct = pct
             task.set_progress(done / total)
 
     return on_progress
 
 
 @contextmanager
-def tracked_job(notifier, title: str, total_steps=None, error_format=None):
+def tracked_job(notifier, title: str, error_format=None):
     """Track a job as a pysepal notification task, echoing its log milestones.
 
     Enter it on the thread that runs the job body. ``asyncio.CancelledError``
@@ -99,7 +84,7 @@ def tracked_job(notifier, title: str, total_steps=None, error_format=None):
 
         notifier = NoopNotifier()
     install_task_log_handler()
-    with notifier.track(title, total_steps=total_steps) as task:
+    with notifier.track(title) as task:
         tid = threading.get_ident()
         previous = _trackers.get(tid)
         _trackers[tid] = task

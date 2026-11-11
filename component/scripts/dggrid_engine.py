@@ -67,6 +67,20 @@ def polygons_for_extent(level: int, clip_geom) -> gpd.GeoDataFrame:
     """
     with _LOCK:
         gdf = _engine().grid_cell_polygons_for_extent(DGGS_TYPE, int(level), clip_geom=clip_geom)
+    return _cells(gdf)
+
+
+def polygons_for_ids(level: int, ids) -> gpd.GeoDataFrame:
+    """Cell polygons (sphere space) for these SEQNUM ids."""
+    ids = np.unique(np.asarray(ids, dtype="int64"))
+    if ids.size == 0:
+        return _empty_cells()
+    with _LOCK:
+        gdf = _engine().grid_cell_polygons_from_cellids([str(i) for i in ids], DGGS_TYPE, int(level))
+    return _cells(gdf)
+
+
+def _cells(gdf) -> gpd.GeoDataFrame:
     if gdf is None or len(gdf) == 0:
         return _empty_cells()
     return gpd.GeoDataFrame(

@@ -11,6 +11,7 @@ import pytest
 import shapely
 from shapely.geometry import MultiPoint, Point, box
 
+from component.parameter import grid
 from component.scripts import dggrid_engine as engine
 from component.scripts import grid_builder as gb
 from component.scripts import metadata as md
@@ -18,6 +19,7 @@ from component.scripts import outputs_index as oi
 from component.scripts import pmtiles_preview as pp
 from component.scripts.aoi_prep import prepare_aoi
 from component.scripts.fra_correction import correct_geometries, to_sphere_geometry, unwrap_antimeridian
+from _fakes import read_gpkg_metadata
 
 needs_engine = pytest.mark.skipif(shutil.which("dggrid") is None, reason="dggrid binary not on PATH")
 needs_tippecanoe = pytest.mark.skipif(pp.resolve_tippecanoe() is None, reason="tippecanoe not available")
@@ -99,6 +101,18 @@ def test_existing_non_grid_folder_is_never_replaced(results_root, chaco_aoi):
     assert sorted(p.name for p in results_root.iterdir()) == ["g"]
 
 
+def test_tile_log_lines_are_capped_at_about_twenty(results_root, chaco_aoi, monkeypatch, caplog):
+    # Each line becomes a notification milestone that is re-sent in full: never one per tile.
+    monkeypatch.setattr(gb, "plan_tiles", lambda region, tile_deg: [box(0, 0, 1, 1)] * 1000)
+    monkeypatch.setattr(gb, "build_tile", lambda *a: gb._empty_frame(17))
+    seen = []
+    with caplog.at_level("INFO", logger="fra_grid"), pytest.raises(gb.EmptyGridError):
+        gb.build_grid(gb.BuildRequest(chaco_aoi, 17, "many"), on_progress=lambda d, t, c: seen.append(d))
+    tile_lines = [r.getMessage() for r in caplog.records if r.getMessage().startswith("Tile ")]
+    assert len(tile_lines) == 20 and tile_lines[-1].startswith("Tile 1000/1000")
+    assert seen == list(range(1, 1001))  # the progress bar still moves on every tile
+
+
 def test_concurrent_same_name_builds_stage_in_their_own_part_folders(results_root, chaco_aoi, monkeypatch):
     both_staging = threading.Barrier(2, timeout=5)
     parts, errors = [], []
@@ -106,7 +120,7 @@ def test_concurrent_same_name_builds_stage_in_their_own_part_folders(results_roo
     class Stop(RuntimeError):
         pass
 
-    def fake_build_into(request, part, work, t0, on_progress, cancel, now, on_step):
+    def fake_build_into(request, part, work, t0, on_progress, cancel, now):
         parts.append(part)
         both_staging.wait()  # both runs are staging at the same time
         assert all(p.is_dir() for p in parts)
@@ -138,21 +152,15 @@ def test_concurrent_same_name_builds_stage_in_their_own_part_folders(results_roo
 
 @needs_engine
 def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
-    progress, steps = [], []
+    progress = []
     res = gb.build_grid(
         gb.BuildRequest(chaco_aoi, 17, "chaco17", formats=("gpkg", "shp")),
         on_progress=lambda d, t, c: progress.append((d, t, c)),
-        on_step=lambda step, fraction: steps.append((step, fraction)),
     )
     folder = results_root / "chaco17"
     assert res.folder == folder and res.n_tiles == 2
     assert res.cell_count == 330  # verified while planning (R-equivalent pipeline)
     assert progress[-1] == (2, 2, 330)
-    assert list(dict.fromkeys(s for s, _ in steps)) == ["cells", "shp", "preview", "finish"]
-    assert [f for s, f in steps if s == "cells"] == [0.0, 0.5, 1.0]
-    assert [f for s, f in steps if s in ("shp", "finish")] == [None, None]
-    preview = [f for s, f in steps if s == "preview"]
-    assert preview[0] == 0.0 and preview == sorted(preview) and preview[-1] <= 1.0
     assert sorted(p.name for p in folder.iterdir()) == sorted(
         ["chaco17.gpkg", "chaco17.shp", "chaco17.shx", "chaco17.dbf", "chaco17.prj", "chaco17.cpg",
          "metadata.json", "aoi.geojson", *PREVIEW]
@@ -171,7 +179,7 @@ def test_chaco_r17_end_to_end(results_root, chaco_aoi, tmp_path):
 
     record = md.read_metadata_json(folder)
     assert record["run"]["cell_count"] == 330 and record["dggs"]["resolution"] == 17
-    assert md.read_gpkg_metadata(folder / "chaco17.gpkg", "chaco17") == record
+    assert read_gpkg_metadata(folder / "chaco17.gpkg", "chaco17") == record
     shp = pyogrio.read_dataframe(folder / "chaco17.shp")
     assert len(shp) == 330
     assert record["centroids"] is None
@@ -236,6 +244,29 @@ def test_points_aoi_keeps_cells_containing_points(results_root):
     assert cells["global_id"].is_unique and 1 <= len(cells) <= 4
     for p in pts.geoms:
         assert shapely.intersects(cells.geometry.values, p).sum() >= 1
+
+
+@needs_engine
+@pytest.mark.parametrize("level", [17, 21])
+def test_points_lookup_matches_the_tile_clip_even_on_edges_and_corners(results_root, monkeypatch, level):
+    # The tile path (one clip per tile) is the reference; points on a corrected cell's
+    # corners and edge midpoints are the cases the 1 m ring exists for.
+    rng = np.random.default_rng(3)
+    edge = correct_geometries(engine.polygons_for_extent(level, box(-50, 10, -49.98, 10.02)).geometry.to_numpy()[:3])
+    xy = shapely.get_coordinates(edge)
+    pts = np.r_[np.c_[rng.uniform(-60, -40, 40), rng.uniform(-70, 70, 40)], xy, (xy[:-1] + xy[1:]) / 2]
+    aoi = prepare_aoi(gpd.GeoDataFrame(geometry=gpd.points_from_xy(*pts.T), crs="EPSG:4326"),
+                      method="POINTS", label="p")
+    shapely.prepare(aoi.geometry)
+    buf = gb.clip_buffer_deg(level, 70.0)
+    region = gb.search_region(aoi, level, buf)
+    tiled = {i for t in gb.plan_tiles(region, grid.TILE_DEG[level])
+             for i in gb.build_tile(aoi.geometry, region, level, t, buf)["global_id"]}
+    monkeypatch.setattr(gb, "POINT_BATCH", 7)  # many batches: a cell is still written once
+    res = gb.build_grid(gb.BuildRequest(aoi, level, "pts"))
+    cells = pyogrio.read_dataframe(res.folder / "pts.gpkg", layer="pts")
+    assert cells["global_id"].is_unique and set(cells["global_id"]) == tiled
+    assert res.metadata["run"]["n_tiles"] == -(-aoi.n_points // 7) and res.metadata["run"]["tile_deg"] is None
 
 
 @needs_engine

@@ -33,3 +33,15 @@ def test_configure_gdal_tmpdir_sets_env(tmp_path, monkeypatch):
     monkeypatch.setenv("FRA_GRID_SCRATCH", str(tmp_path / "nfs"))
     got = scratch.configure_gdal_tmpdir()
     assert got is not None and os.environ["CPL_TMPDIR"] == str(got)
+
+
+def test_cleanup_local_scratch_removes_only_old_run_folders(tmp_path, monkeypatch):
+    local = tmp_path / "local"
+    monkeypatch.setenv("FRA_GRID_LOCAL_SCRATCH", str(local))
+    for name in ("old-run", "new-run", "dggrid"):
+        (local / name).mkdir(parents=True)
+    (local / "old-file").write_text("x")
+    for name in ("old-run", "dggrid", "old-file"):
+        os.utime(local / name, (0, 0))
+    assert scratch.cleanup_local_scratch(3600) == ["old-run"]
+    assert sorted(p.name for p in local.iterdir()) == ["dggrid", "new-run", "old-file"]

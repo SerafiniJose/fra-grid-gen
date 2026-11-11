@@ -38,7 +38,7 @@ class JobTexts:
     engine_missing: str
     disk_full: str
     name_taken: str
-    progress: str  # template: {done} {total} {cells}
+    name_exists: str
 
 
 def job_texts(level: int, aoi_label: str, name: str) -> JobTexts:
@@ -51,7 +51,7 @@ def job_texts(level: int, aoi_label: str, name: str) -> JobTexts:
         engine_missing=t("grid.engine_missing"),
         disk_full=t("grid.disk_full", name=name),
         name_taken=t("grid.name_taken"),
-        progress=t("grid.progress", done="{done}", total="{total}", cells="{cells}"),
+        name_exists=t("grid.name_exists_now"),
     )
 
 
@@ -60,6 +60,8 @@ def format_error(exc: BaseException, texts: JobTexts) -> str:
         return texts.engine_missing
     if isinstance(exc, NotAGridFolder):
         return texts.name_taken
+    if isinstance(exc, FileExistsError):  # another session made this grid after the click
+        return texts.name_exists
     if isinstance(exc, OSError) and exc.errno == errno.ENOSPC:
         return texts.disk_full
     return texts.failed.format(error=str(exc) or type(exc).__name__)
@@ -76,7 +78,7 @@ def start_generation(state, request, notifier, texts: JobTexts, *, build=build_g
             return False
         cancel = threading.Event()
         state.cancel_event.set(cancel)
-        state.job.set(JobState(status="running", name=request.name, level=request.level, title=texts.title,
+        state.job.set(JobState(status="running", name=request.name, level=request.level,
                                formats=tuple(request.formats), request=request))
     try:
         spawn_in_context(_run, (state, request, notifier, texts, cancel, build))
@@ -142,10 +144,7 @@ def _execute(state, request, notifier, texts, cancel, build):
     # event is cleared: observers treat done/cancelled/failed as "job finished".
     try:
         with tracked_job(notifier, texts.title, error_format=lambda e: format_error(e, texts)) as task:
-            report = tile_progress_reporter(
-                task, lambda d, n, c: texts.progress.format(done=d, total=n, cells=f"{c:,}")
-            )
-            result = build(request, on_progress=report, cancel=cancel)
+            result = build(request, on_progress=tile_progress_reporter(task), cancel=cancel)
     except BuildCancelled:
         notifier.cancel(texts.cancelled)
         state.cancel_event.set(None)

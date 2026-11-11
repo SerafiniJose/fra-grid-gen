@@ -120,7 +120,12 @@ def load_output(root, name):
     # Hidden files (the PMTiles map preview) are not deliverables: not listed,
     # but counted in the size, which is what a delete frees.
     files = tuple((n, s) for n, s in sizes if not n.startswith("."))
-    return OutputRecord(name=name, folder=folder, metadata=record, files=files, size_bytes=sum(s for _, s in sizes))
+    out = OutputRecord(name=name, folder=folder, metadata=record, files=files, size_bytes=sum(s for _, s in sizes))
+    try:  # metadata.json is user-editable: a field the list reads that will not parse hides the folder
+        out.level, out.cell_count, out.formats, out.aoi_label
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return out
 
 
 def list_outputs(root) -> list:

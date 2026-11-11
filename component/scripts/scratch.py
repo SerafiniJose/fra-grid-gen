@@ -7,7 +7,9 @@ and moved into place afterwards. Nothing here may raise at import time.
 """
 
 import os
+import shutil
 import tempfile
+import time
 from pathlib import Path
 
 
@@ -42,6 +44,28 @@ def local_scratch_dir() -> Path:
         if _usable(path):
             return path
     return scratch_dir()
+
+
+def cleanup_local_scratch(max_age_s: float) -> list:
+    """Remove run work folders a dead kernel left in ``local_scratch_dir()``.
+
+    A run deletes its own folder when it ends; a killed kernel never does.
+    Folders untouched for ``max_age_s`` are removed (``dggrid/`` stays: it is
+    shared). Never raises.
+    """
+    removed = []
+    try:
+        root = local_scratch_dir()
+        cutoff = time.time() - max_age_s
+        for path in root.iterdir():
+            if path.name == "dggrid" or path.is_symlink() or not path.is_dir():
+                continue
+            if path.stat().st_mtime < cutoff:
+                shutil.rmtree(path, ignore_errors=True)
+                removed.append(path.name)
+    except OSError:
+        pass
+    return removed
 
 
 def configure_gdal_tmpdir():

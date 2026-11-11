@@ -7,6 +7,7 @@ import pyogrio
 from shapely.geometry import box
 
 from component.scripts import metadata as md
+from _fakes import read_gpkg_metadata
 
 
 def _record(chaco_aoi, level=17, name="g"):
@@ -52,20 +53,13 @@ def test_gpkg_embedding_round_trip(tmp_path, chaco_aoi):
     pyogrio.write_dataframe(frame, gpkg, layer="g", driver="GPKG")
     rec = _record(chaco_aoi)
     md.embed_in_gpkg(gpkg, "g", rec)
-    assert md.read_gpkg_metadata(gpkg, "g") == rec
+    assert read_gpkg_metadata(gpkg, "g") == rec
     with sqlite3.connect(gpkg) as con:
         desc = con.execute("SELECT description FROM gpkg_contents WHERE table_name='g'").fetchone()[0]
         ext = con.execute("SELECT count(*) FROM gpkg_extensions WHERE extension_name='gpkg_metadata'").fetchone()[0]
         ok = con.execute("PRAGMA integrity_check").fetchone()[0]
     assert desc == md.summary_line(rec) and ext == 2 and ok == "ok"
     assert pyogrio.read_info(gpkg, layer="g")["features"] == 2  # GDAL still opens it
-
-
-def test_read_gpkg_metadata_absent(tmp_path):
-    gpkg = tmp_path / "plain.gpkg"
-    frame = gpd.GeoDataFrame({"a": [1]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326")
-    pyogrio.write_dataframe(frame, gpkg, layer="plain", driver="GPKG")
-    assert md.read_gpkg_metadata(gpkg, "plain") is None
 
 
 def test_area_ha_doc_names_the_wgs84_ellipsoid():

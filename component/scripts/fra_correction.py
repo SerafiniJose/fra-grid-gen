@@ -48,6 +48,20 @@ def approx_sphere_lat(lat):
     return np.degrees(np.arctan((1.0 - _E2) * np.tan(np.radians(lat))))
 
 
+def sphere_lat_of(lat):
+    """Exact inverse of ``correct_lat`` (WGS84 -> sphere latitude), by Newton steps.
+
+    Starts from ``approx_sphere_lat`` (within 0.00057 deg); four steps reach float precision.
+    """
+    target = np.asarray(lat, dtype="float64")
+    x = approx_sphere_lat(target)
+    h = 1e-6
+    for _ in range(4):
+        slope = (correct_lat(x + h) - correct_lat(x - h)) / (2.0 * h)
+        x = x - (correct_lat(x) - target) / slope
+    return np.clip(x, -90.0, 90.0)
+
+
 def _correct_xy(xy):
     out = xy.copy()
     out[:, 1] = correct_lat(xy[:, 1])

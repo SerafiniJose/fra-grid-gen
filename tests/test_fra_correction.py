@@ -58,6 +58,11 @@ def test_approx_inverse_is_within_clip_margin():
     assert err.max() < grid.CLIP_EXTRA_DEG / 2
 
 
+def test_exact_inverse_round_trips_to_float_precision():
+    dense = np.linspace(-90.0, 90.0, 36001)
+    np.testing.assert_allclose(fc.correct_lat(fc.sphere_lat_of(dense)), dense, rtol=0, atol=1e-12)
+
+
 def test_correct_geometries_moves_latitudes_only():
     poly = box(-60.1, -22.4, -60.0, -22.3)
     (out,) = fc.correct_geometries(np.array([poly]))

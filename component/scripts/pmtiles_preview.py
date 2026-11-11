@@ -9,8 +9,7 @@ disk: its PMTiles writer seeks constantly and SEPAL's NFS is ~60x slower
 
 Progress: feeding counts for the first half, tippecanoe's ``--json-progress``
 for the second; INFO milestones at 25/50/75 % go out on the caller's thread
-(the job thread, so notify_bridge turns them into task steps), and
-``on_progress(pct)`` gets every rise of the percent, also on that thread.
+(the job thread, so notify_bridge turns them into task steps).
 ``cancel`` is checked between batches and while tippecanoe runs; a set event
 kills the subprocess and raises ``PreviewCancelled``.
 """
@@ -80,17 +79,12 @@ def parse_progress(line: str):
 
 
 class _Milestones:
-    """Log each 25/50/75 % threshold once and report each rise, on the calling thread."""
+    """Log each 25/50/75 % threshold once, on the calling thread."""
 
-    def __init__(self, on_progress=None):
+    def __init__(self):
         self._next = 0
-        self._last = 0.0
-        self._on_progress = on_progress
 
     def update(self, pct: float) -> None:
-        if self._on_progress is not None and pct > self._last:
-            self._last = pct
-            self._on_progress(pct)
         while self._next < len(MILESTONES) and pct >= MILESTONES[self._next]:
             logger.info("Map preview %d%%", MILESTONES[self._next])
             self._next += 1
@@ -112,7 +106,7 @@ def _kill(proc) -> None:
 
 
 def build_preview(gpkg, layer, out_path, *, minzoom, maxzoom, tmp_dir, cancel=None, chunk=CHUNK,
-                  on_progress=None, centroids_layer=None) -> Path:
+                  centroids_layer=None) -> Path:
     """Write ``out_path`` (a PMTiles archive of ``layer``'s cell outlines).
 
     ``centroids_layer`` (a GPKG layer of 1 ha centroid squares) goes into the same archive as
@@ -130,7 +124,7 @@ def build_preview(gpkg, layer, out_path, *, minzoom, maxzoom, tmp_dir, cancel=No
     if centroids_layer:
         sources.append((centroids_layer, g.PREVIEW_CENTROIDS_LAYER, centroids_zoom))
     total = max(sum(pyogrio.read_info(gpkg, layer=src)["features"] for src, _, _ in sources), 1)
-    milestones = _Milestones(on_progress)
+    milestones = _Milestones()
     tail = []  # last stderr lines, for the error message
     state = {"pct": 0.0}
 

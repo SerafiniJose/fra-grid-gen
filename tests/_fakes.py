@@ -1,4 +1,20 @@
-"""Test doubles shared by several test modules."""
+"""Test doubles and readers shared by several test modules."""
+
+import json
+import sqlite3
+from contextlib import closing
+
+
+def read_gpkg_metadata(gpkg_path, layer: str):
+    """The JSON record embedded for ``layer`` by ``metadata.embed_in_gpkg``."""
+    with closing(sqlite3.connect(gpkg_path)) as con:
+        row = con.execute(
+            "SELECT m.metadata FROM gpkg_metadata m JOIN gpkg_metadata_reference r ON r.md_file_id = m.id "
+            "WHERE r.reference_scope = 'table' AND r.table_name = ? AND m.mime_type = 'application/json' "
+            "ORDER BY m.id DESC LIMIT 1",
+            (layer,),
+        ).fetchone()
+    return json.loads(row[0])
 
 
 class FakeMap:

@@ -98,6 +98,19 @@ def test_delete_keeps_other_preview(results_root):
     assert state.preview_name.value == "a" and m.find_layer(ml.GRID_LAYER_KEY) is not None
 
 
+def test_delete_runs_on_a_worker_and_blocks_other_deletes_meanwhile(results_root, monkeypatch):
+    spawned = []
+    monkeypatch.setattr(ot, "spawn_in_context", lambda target, args=(): spawned.append(target))
+    state, n = AppState(), FakeNotifier()
+    a, b = _grid(results_root, "a"), _grid(results_root, "b")
+    assert ot.start_delete(state, None, results_root, a, n) is True
+    assert state.deleting.value == "a" and (results_root / "a").exists()  # nothing deleted on the click thread
+    assert ot.start_delete(state, None, results_root, b, n) is False
+    spawned[0]()
+    assert not (results_root / "a").exists() and (results_root / "b").exists()
+    assert state.deleting.value is None and n.toasts == [("success", "Deleted a.")]
+
+
 def test_toggle_preview_hides_on_second_call(results_root):
     state, m = AppState(), FakeMap()
     out = _grid(results_root, "g")
@@ -172,7 +185,7 @@ def _tips(rc):
 
 def _job(status, **changes):
     request = SimpleNamespace(aoi=SimpleNamespace(label="Chaco"), level=17, name="chaco_r17")
-    base = dict(status=status, name="chaco_r17", level=17, title="r17 grid · Chaco", formats=("gpkg", "shp"),
+    base = dict(status=status, name="chaco_r17", level=17, formats=("gpkg", "shp"),
                 request=request)
     return JobState(**{**base, **changes})
 

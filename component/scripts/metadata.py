@@ -175,17 +175,3 @@ def embed_in_gpkg(gpkg_path, layer: str, record: dict) -> None:
             )
         con.execute("UPDATE gpkg_contents SET description = ? WHERE table_name = ?", (summary_line(record), layer))
 
-
-def read_gpkg_metadata(gpkg_path, layer: str):
-    try:
-        uri = Path(gpkg_path).absolute().as_uri() + "?mode=ro"
-        with closing(sqlite3.connect(uri, uri=True)) as con:
-            row = con.execute(
-                "SELECT m.metadata FROM gpkg_metadata m JOIN gpkg_metadata_reference r ON r.md_file_id = m.id "
-                "WHERE r.reference_scope = 'table' AND r.table_name = ? AND m.mime_type = 'application/json' "
-                "ORDER BY m.id DESC LIMIT 1",
-                (layer,),
-            ).fetchone()
-    except sqlite3.Error:
-        return None
-    return json.loads(row[0]) if row else None

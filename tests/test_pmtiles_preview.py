@@ -114,17 +114,6 @@ def test_tippecanoe_failure_raises_preview_failed(tmp_path):
 
 
 @needs_tippecanoe
-def test_on_progress_reports_rising_percent_without_repeats(tmp_path):
-    seen = []
-    pp.build_preview(_gpkg(tmp_path / "g.gpkg", n=2000), "g", tmp_path / "p.pmtiles", minzoom=10, maxzoom=13,
-                     tmp_dir=tmp_path, chunk=200, on_progress=seen.append)
-    assert seen and seen == sorted(seen) and len(seen) == len(set(seen))
-    assert 50.0 in seen  # feeding (first half) completes before tippecanoe's own progress
-    assert all(0 < p <= 100 for p in seen)
-
-
-
-@needs_tippecanoe
 def test_centroids_go_into_their_own_layer_of_the_same_archive(tmp_path):
     gpkg = _gpkg(tmp_path / "g.gpkg")
     pyogrio.write_dataframe(pyogrio.read_dataframe(gpkg, layer="g"), gpkg, layer="g_centroids", driver="GPKG")

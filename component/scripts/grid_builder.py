@@ -1,9 +1,8 @@
 """Generate one FRA grid: tiles -> DGGRID -> FRA correction -> filter -> files.
 
 Solara-free. Progress goes out as INFO lines on the ``fra_grid`` logger (task
-milestones through notify_bridge), through ``on_progress(done, total,
-cells)`` and through ``on_step(step, fraction)`` (cells, shp, preview, finish;
-fraction 0..1, or None for a step that cannot measure itself).
+milestones through notify_bridge, about 20 per run) and through
+``on_progress(done, total, cells)`` after every tile.
 ``cancel.is_set()`` is checked between tiles; a dggrid call already running
 finishes first.
 
@@ -13,6 +12,8 @@ returned by two neighbouring clips is written exactly once. Each clip is the
 search region (AOI simplified by a quarter cell, buffered by one cell spacing
 plus the inverse-correction margin) cut to the buffered tile and moved into
 sphere space: DGGRID's GDAL clip misses edge cells without that buffer.
+Point AOIs skip the tiles (a clip costs its whole tile area): each batch of
+points is looked up with ``cells_for_points`` and its cells fetched by id.
 
 After the GPKG is complete a PMTiles map preview (``g.PREVIEW_FILE``, hidden,
 not a deliverable) is built from it; a missing or failing tippecanoe only
@@ -32,7 +33,6 @@ import geopandas as gpd
 import numpy as np
 import shapely
 from pyproj import Geod
-from shapely.geometry import box
 
 from component.parameter import grid as g
 from component.parameter.directory import results_dir
@@ -40,7 +40,12 @@ from component.scripts import dggrid_engine as engine
 from component.scripts import metadata as md
 from component.scripts import outputs_index as oi
 from component.scripts import pmtiles_preview as pp
-from component.scripts.fra_correction import correct_geometries, to_sphere_geometry, unwrap_antimeridian
+from component.scripts.fra_correction import (
+    correct_geometries,
+    sphere_lat_of,
+    to_sphere_geometry,
+    unwrap_antimeridian,
+)
 from component.scripts.levels import level_stats
 from component.scripts.scratch import local_scratch_dir
 from component.scripts.writers import append_cells, gpkg_to_shp, human_size, write_aoi_geojson
@@ -49,6 +54,8 @@ logger = logging.getLogger(g.LOGGER_NAME)
 
 _GEOD = Geod(ellps="WGS84")
 FORMATS = ("gpkg", "shp")
+POINT_BATCH = 50_000  # points per dggrid lookup: bounds memory, keeps progress and Cancel
+POINT_RING_M = 1.0  # far above the gap between a cell's true edge and its straight corrected edge
 
 
 class BuildCancelled(asyncio.CancelledError):
@@ -116,16 +123,9 @@ def plan_tiles(region, tile_deg: float) -> list:
     miny, maxy = max(miny, -90.0), min(maxy, 90.0)
     x0 = math.floor(minx / tile_deg) * tile_deg
     y0 = math.floor(miny / tile_deg) * tile_deg
-    tiles = np.array(
-        [
-            box(x, y, x + tile_deg, min(y + tile_deg, 90.0))
-            for y in np.arange(y0, maxy, tile_deg)
-            for x in np.arange(x0, maxx, tile_deg)
-        ],
-        dtype=object,
-    )
-    if tiles.size == 0:
-        return []
+    xs, ys = np.meshgrid(np.arange(x0, maxx, tile_deg), np.arange(y0, maxy, tile_deg))
+    xs, ys = xs.ravel(), ys.ravel()
+    tiles = shapely.box(xs, ys, xs + tile_deg, np.minimum(ys + tile_deg, 90.0))
     return list(tiles[shapely.intersects(region, tiles)])
 
 
@@ -160,21 +160,18 @@ def centroid_frame(cells: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame(cells.drop(columns=["area_ha", "geometry"]), geometry=squares, crs="EPSG:4326")
 
 
-def build_tile(aoi_geom, region, level: int, tile, buffer_deg: float) -> gpd.GeoDataFrame:
-    """Cells that touch the AOI and whose corrected centroid lies in ``tile``."""
-    x0, y0, x1, y1 = tile.bounds
-    clip = shapely.clip_by_rect(region, x0 - buffer_deg, y0 - buffer_deg, x1 + buffer_deg, y1 + buffer_deg)
-    if clip.is_empty:
-        return _empty_frame(level)
-    raw = engine.polygons_for_extent(level, to_sphere_geometry(clip))
+def _cells_frame(aoi_geom, level: int, raw, bounds=None) -> gpd.GeoDataFrame:
+    """The ``raw`` sphere cells that touch the AOI, corrected, as output rows.
+
+    With ``bounds`` (a tile), only the cells whose corrected centroid lies in it.
+    """
     if raw.empty:
         return _empty_frame(level)
-
     sphere = unwrap_antimeridian(raw.geometry.to_numpy())
     geoms = correct_geometries(sphere)
     centroids = shapely.centroid(geoms)
     cx, cy = shapely.get_x(centroids), shapely.get_y(centroids)
-    keep = owned(cx, cy, tile.bounds)
+    keep = owned(cx, cy, bounds) if bounds is not None else np.ones(len(geoms), dtype=bool)
     keep[keep] = shapely.intersects(aoi_geom, geoms[keep])
     if not keep.any():
         return _empty_frame(level)
@@ -192,6 +189,40 @@ def build_tile(aoi_geom, region, level: int, tile, buffer_deg: float) -> gpd.Geo
     frame = gpd.GeoDataFrame(data, geometry=geoms[keep], crs="EPSG:4326")
     frame["area_ha"] = _geodesic_area_ha(geoms[keep])
     return frame[columns(level)]
+
+
+def build_tile(aoi_geom, region, level: int, tile, buffer_deg: float) -> gpd.GeoDataFrame:
+    """Cells that touch the AOI and whose corrected centroid lies in ``tile``."""
+    x0, y0, x1, y1 = tile.bounds
+    clip = shapely.clip_by_rect(region, x0 - buffer_deg, y0 - buffer_deg, x1 + buffer_deg, y1 + buffer_deg)
+    if clip.is_empty:
+        return _empty_frame(level)
+    return _cells_frame(aoi_geom, level, engine.polygons_for_extent(level, to_sphere_geometry(clip)), tile.bounds)
+
+
+def point_candidates(lon, lat) -> tuple:
+    """Each point and 6 points ``POINT_RING_M`` around it, moved into sphere space.
+
+    The exact inverse correction puts every point in its true DGGRID cell; the ring
+    adds the neighbour cell of a point that sits on an edge, which the corrected
+    (straight-edged) polygon may hold instead.
+    """
+    sphere_lat = sphere_lat_of(lat)
+    angles = np.arange(6) * np.pi / 3
+    step = POINT_RING_M / 1000.0 / g.KM_PER_DEG
+    dx, dy = np.r_[0.0, np.cos(angles)] * step, np.r_[0.0, np.sin(angles)] * step
+    cos = np.maximum(np.cos(np.radians(sphere_lat)), 1e-6)[:, None]
+    return (np.asarray(lon)[:, None] + dx / cos).ravel(), np.clip(sphere_lat[:, None] + dy, -90.0, 90.0).ravel()
+
+
+def point_cells(aoi_geom, level: int, lon, lat, seen) -> tuple:
+    """Cells holding these points (two dggrid calls, no clip), skipping ids in ``seen``.
+
+    A clip costs its whole tile area, so points get a lookup instead of a tile each.
+    Returns the frame and ``seen`` with this batch's candidate ids added.
+    """
+    ids = np.setdiff1d(engine.cells_for_points(level, *point_candidates(lon, lat)), seen)
+    return _cells_frame(aoi_geom, level, engine.polygons_for_ids(level, ids)), np.union1d(seen, ids)
 
 
 def _validate(request: BuildRequest, root: Path) -> None:
@@ -212,26 +243,19 @@ def _validate(request: BuildRequest, root: Path) -> None:
         raise FileExistsError(str(root / request.name))
 
 
-def _no_step(step, fraction) -> None:
-    pass
-
-
 def _check(cancel) -> None:
     if cancel is not None and cancel.is_set():
         raise BuildCancelled()
 
 
-def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, cancel, on_step, centroids_layer=None):
+def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, cancel, centroids_layer=None):
     """Build ``part/g.PREVIEW_FILE``; its metadata entry, or None when skipped."""
     minzoom, maxzoom = g.PREVIEW_ZOOMS[level]
     target = part / g.PREVIEW_FILE
     logger.info("Building map preview")
-    on_step("preview", 0.0)
     try:
         built = pp.build_preview(gpkg_tmp, name, work / g.PREVIEW_FILE, minzoom=minzoom, maxzoom=maxzoom,
-                                 tmp_dir=work, cancel=cancel,
-                                 on_progress=lambda pct: on_step("preview", min(pct / 100.0, 1.0)),
-                                 centroids_layer=centroids_layer)
+                                 tmp_dir=work, cancel=cancel, centroids_layer=centroids_layer)
         size = built.stat().st_size
         shutil.move(str(built), str(target))
     except pp.PreviewCancelled:
@@ -244,31 +268,41 @@ def _build_preview(gpkg_tmp, name: str, level: int, part: Path, work: Path, canc
     return {"file": g.PREVIEW_FILE, "minzoom": minzoom, "maxzoom": maxzoom}
 
 
-def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel, now, on_step):
+def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel, now):
     aoi, level, name = request.aoi, request.level, request.name
-    on_step("cells", 0.0)
     logger.info("Preparing AOI")
-    buf = clip_buffer_deg(level, max(abs(aoi.bbox[1]), abs(aoi.bbox[3])))
-    region = search_region(aoi, level, buf)
     aoi_geom = aoi.geometry
     shapely.prepare(aoi_geom)
-    tiles = plan_tiles(region, g.TILE_DEG[level])
+    if aoi.is_points:
+        xy = shapely.get_coordinates(aoi_geom)
+        tiles = [xy[i:i + POINT_BATCH] for i in range(0, len(xy), POINT_BATCH)]
+        buf, tile_deg, seen = 0.0, None, np.array([], dtype="int64")
+    else:
+        buf = clip_buffer_deg(level, max(abs(aoi.bbox[1]), abs(aoi.bbox[3])))
+        region = search_region(aoi, level, buf)
+        tile_deg = g.TILE_DEG[level]
+        tiles = plan_tiles(region, tile_deg)
 
     gpkg_tmp = work / f"{name}.gpkg"
     centroids_layer = f"{name}{g.CENTROIDS_SUFFIX}"
     total = 0
+    # Each INFO line is a notification milestone that the pill re-sends in full: ~20 per run.
+    log_every = max(1, len(tiles) // 20)
     for i, tile in enumerate(tiles, start=1):
         _check(cancel)
-        cells = build_tile(aoi_geom, region, level, tile, buf)
+        if aoi.is_points:
+            cells, seen = point_cells(aoi_geom, level, tile[:, 0], tile[:, 1], seen)
+        else:
+            cells = build_tile(aoi_geom, region, level, tile, buf)
         if len(cells):
             append_cells(cells, gpkg_tmp, name, first=total == 0)
             if request.centroids:
                 append_cells(centroid_frame(cells), gpkg_tmp, centroids_layer, first=total == 0)
             total += len(cells)
-        logger.info("Tile %d/%d: %s cells", i, len(tiles), f"{total:,}")
+        if i % log_every == 0 or i == len(tiles):
+            logger.info("Tile %d/%d: %s cells", i, len(tiles), f"{total:,}")
         if on_progress is not None:
             on_progress(i, len(tiles), total)
-        on_step("cells", i / len(tiles))
     _check(cancel)
     if total == 0:
         raise EmptyGridError("No cells were generated: check the AOI.")
@@ -278,22 +312,20 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
     if keep_gpkg:
         files.append(f"{name}.gpkg")
     if "shp" in request.formats:
-        on_step("shp", None)
         logger.info("Converting to Shapefile")
         files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{name}.shp", name)]
         if request.centroids:
             files += [p.name for p in gpkg_to_shp(gpkg_tmp, part / f"{centroids_layer}.shp", centroids_layer)]
     write_aoi_geojson(aoi.geometry, part / md.AOI_FILE)
     files += [md.AOI_FILE, md.METADATA_FILE]
-    preview = _build_preview(gpkg_tmp, name, level, part, work, cancel, on_step,
+    preview = _build_preview(gpkg_tmp, name, level, part, work, cancel,
                              centroids_layer if request.centroids else None)
     _check(cancel)
-    on_step("finish", None)
 
     logger.info("Writing metadata")
     record = md.build_record(
         name=name, aoi=aoi, level=level, formats=request.formats, files=files, cell_count=total,
-        n_tiles=len(tiles), tile_deg=g.TILE_DEG[level], clip_buffer_deg=buf,
+        n_tiles=len(tiles), tile_deg=tile_deg, clip_buffer_deg=buf,
         duration_s=time.monotonic() - t0, versions=engine.versions(), generated_at=now, preview=preview,
         centroids_layer=centroids_layer if request.centroids else None,
     )
@@ -305,18 +337,15 @@ def _build_into(request, part: Path, work: Path, t0: float, on_progress, cancel,
     return record, files, len(tiles), total
 
 
-def build_grid(request: BuildRequest, *, results_root=None, on_progress=None, on_step=None, cancel=None,
-               now=None) -> BuildResult:
+def build_grid(request: BuildRequest, *, results_root=None, on_progress=None, cancel=None, now=None) -> BuildResult:
     t0 = time.monotonic()
-    if on_step is None:
-        on_step = _no_step
     root = Path(results_root) if results_root is not None else results_dir()
     _validate(request, root)
     part = oi.new_part_folder(root, request.name)  # this run's own: never shared with another session
     work = None
     try:
         work = Path(tempfile.mkdtemp(prefix=f"{request.name}-", dir=local_scratch_dir()))
-        record, files, n_tiles, total = _build_into(request, part, work, t0, on_progress, cancel, now, on_step)
+        record, files, n_tiles, total = _build_into(request, part, work, t0, on_progress, cancel, now)
         _check(cancel)
         folder = oi.commit_part(root, request.name, part, overwrite=request.overwrite)
     except BaseException:

@@ -22,7 +22,6 @@ class JobState:
     name: str = ""
     level: int = 0
     message: str = ""
-    title: str = ""  # "r17 grid · <AOI>", resolved in the click handler
     formats: tuple = ()
     request: object = None  # the BuildRequest it runs: Retry starts it again
 
@@ -58,6 +57,7 @@ class AppState:
         self.preview_name = solara.reactive(None)  # grid shown on the map
         self.preview_minzoom = solara.reactive(None)  # its PMTiles min zoom; None for GeoJSON
         self.preview_loading = solara.reactive(None)  # grid being added to the map
+        self.deleting = solara.reactive(None)  # grid being deleted (on a worker)
         self.map_zoom = solara.reactive(None)  # the shared map's zoom, for the zoom hint
         self.active_tab = solara.reactive(0)
 

@@ -49,20 +49,27 @@ def toggle_preview(state, map_, output, notifier=None) -> None:
     spawn_in_context(add)
 
 
-def perform_delete(state, map_, root, output, notifier) -> bool:
+def delete_texts(name: str) -> dict:
+    """The delete's toasts, resolved now: ``t()`` must not run on the worker."""
+    return {"busy": t("outputs.busy"), "not_a_grid": t("outputs.not_a_grid", name=name),
+            "failed": t("outputs.delete_failed", name=name, error="{error}"), "deleted": t("outputs.deleted", name=name)}
+
+
+def perform_delete(state, map_, root, output, notifier, texts=None) -> bool:
+    """Delete one grid folder (seconds on NFS for a big grid: run it on a worker)."""
+    texts = texts or delete_texts(output.name)
     try:
         delete_output(root, output.name, busy=busy_names(state))
     except DeleteRefused as exc:
         if exc.reason == "busy":
-            notifier.warning(t("outputs.busy"))
+            notifier.warning(texts["busy"])
         else:  # removed or replaced outside this session: re-list
-            notifier.error(t("outputs.not_a_grid", name=output.name), timeout=ERROR_TOAST_TIMEOUT)
+            notifier.error(texts["not_a_grid"], timeout=ERROR_TOAST_TIMEOUT)
             state.outputs_signal.set(state.outputs_signal.value + 1)
         return False
     except OSError as exc:
         logger.exception("Delete failed")
-        notifier.error(t("outputs.delete_failed", name=output.name, error=exc.strerror or str(exc)),
-                       timeout=ERROR_TOAST_TIMEOUT)
+        notifier.error(texts["failed"].format(error=exc.strerror or str(exc)), timeout=ERROR_TOAST_TIMEOUT)
         state.outputs_signal.set(state.outputs_signal.value + 1)  # a partial delete changes the list
         return False
     if state.preview_name.value == output.name:
@@ -71,7 +78,24 @@ def perform_delete(state, map_, root, output, notifier) -> bool:
     if last is not None and last.name == output.name:
         state.last_output.set(None)
     state.outputs_signal.set(state.outputs_signal.value + 1)
-    notifier.success(t("outputs.deleted", name=output.name))
+    notifier.success(texts["deleted"])
+    return True
+
+
+def start_delete(state, map_, root, output, notifier) -> bool:
+    """Delete on a worker; every row's delete stays off until it is done."""
+    if state.deleting.value is not None:
+        return False
+    texts = delete_texts(output.name)
+    state.deleting.set(output.name)
+
+    def run():
+        try:
+            perform_delete(state, map_, root, output, notifier, texts)
+        finally:
+            state.deleting.set(None)
+
+    spawn_in_context(run)
     return True
 
 
@@ -169,7 +193,8 @@ def job_row(state, job, notifier):
 
 
 @solara.component
-def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_details, on_delete, loading=None):
+def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_details, on_delete, loading=None,
+            deleting=None):
     with rv.Html(tag="div", style_=_ROW):
         _name_cell(out.name, out.aoi_label)
         _level_cell(out.level)
@@ -185,11 +210,11 @@ def GridRow(out, plan, shown, can_preview, busy, zoom_hint, on_preview, on_detai
             else:
                 map_tip = t("outputs.hide") if shown else t("outputs.show")
             _action("mdi-map-minus" if shown else "mdi-map-plus", map_tip, on_preview,
-                    disabled=not can_preview or loading is not None, color="primary" if shown else "grey darken-1",
-                    loading=loading == out.name)
+                    disabled=not can_preview or loading is not None or deleting == out.name,
+                    color="primary" if shown else "grey darken-1", loading=loading == out.name)
             _action("mdi-information-outline", t("outputs.tip.details"), on_details, color="grey darken-1")
             _action("mdi-delete-outline", t("outputs.busy") if busy else t("outputs.tip.delete"), on_delete,
-                    disabled=busy)
+                    disabled=busy or deleting is not None, loading=deleting == out.name)
 
         _actions(actions)
         if zoom_hint:
@@ -232,13 +257,14 @@ def OutputsTile(state, map_):
                     on_details=lambda o=out: set_details(o),
                     on_delete=lambda o=out: set_to_delete(o),
                     loading=state.preview_loading.value,
+                    deleting=state.deleting.value,
                 ).key(out.name)
 
     def confirm_delete():
         target = to_delete
         set_to_delete(None)
         if target is not None:
-            perform_delete(state, map_, root, target, notifier)
+            start_delete(state, map_, root, target, notifier)
 
     ConfirmDialog(
         open=to_delete is not None,

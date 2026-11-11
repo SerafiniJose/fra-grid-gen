@@ -7,16 +7,8 @@ class _Task:
     def __init__(self):
         self.values = []
 
-    def set_progress(self, value):  # pysepal 4.1 signature: no detail kwarg
+    def set_progress(self, value):
         self.values.append(value)
-
-
-class _DetailTask:
-    def __init__(self):
-        self.calls = []
-
-    def set_progress(self, value, detail=None):
-        self.calls.append((value, detail))
 
 
 def test_reporter_throttles_to_whole_percent():
@@ -25,13 +17,6 @@ def test_reporter_throttles_to_whole_percent():
     for done in range(1, 1001):
         report(done, 1000, done * 10)
     assert len(task.values) == 101 and task.values[-1] == 1.0
-
-
-def test_reporter_sends_detail_when_supported():
-    task = _DetailTask()
-    report = nb.tile_progress_reporter(task, format_detail=lambda d, t, c: f"{d}/{t}:{c}")
-    report(1, 4, 99)
-    assert task.calls == [(0.25, "1/4:99")]
 
 
 def test_install_handler_is_idempotent_and_enables_info():
@@ -54,7 +39,7 @@ def test_log_lines_become_steps_only_on_the_job_thread():
         def __init__(self, tracker):
             self.tracker = tracker
 
-        def track(self, title, total_steps=None):
+        def track(self, title):
             tracker = self.tracker
 
             class _Ctx:

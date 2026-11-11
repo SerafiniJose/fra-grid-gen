@@ -19,7 +19,7 @@ TEXTS = gj.JobTexts(
     engine_missing="engine missing",
     disk_full="disk full",
     name_taken="name taken",
-    progress="Tile {done}/{total} · {cells} cells",
+    name_exists="name exists",
 )
 
 
@@ -42,7 +42,7 @@ class FakeNotifier:
         self.tracker = _Tracker()
         self.toasts = []
 
-    def track(self, title, total_steps=None):
+    def track(self, title):
         tracker = self.tracker
 
         class _Ctx:
@@ -98,7 +98,7 @@ def test_success_publishes_result_and_toast():
     assert state.cancel_event.value is None
 
 
-def test_start_records_title_formats_and_request():
+def test_start_records_formats_and_request():
     state, notifier = AppState(), FakeNotifier()
     release = threading.Event()
 
@@ -109,7 +109,7 @@ def test_start_records_title_formats_and_request():
     request = BuildRequest(aoi=object(), level=17, name="g", formats=("gpkg", "shp"))
     gj.start_generation(state, request, notifier, TEXTS, build=build)
     job = state.job.value
-    assert (job.title, job.formats, job.request) == ("r17 grid · t", ("gpkg", "shp"), request)
+    assert (job.formats, job.request) == (("gpkg", "shp"), request)
     release.set()
     _wait_idle(state)
 
@@ -200,6 +200,7 @@ def test_failure_marks_failed_with_one_error_toast():
     [
         (EngineUnavailable("x"), "engine missing"),
         (NotAGridFolder("/r/g"), "name taken"),
+        (FileExistsError("/r/g"), "name exists"),
         (OSError(errno.ENOSPC, "No space left on device"), "disk full"),
         (RuntimeError("boom"), "failed: boom"),
         (RuntimeError(), "failed: RuntimeError"),
@@ -213,7 +214,7 @@ def test_job_texts_resolve_placeholders_lazily():
     texts = gj.job_texts(18, "Chaco", "zz_grid")
     assert texts.title == "r18 grid · Chaco"
     assert texts.success.format(cells="935", file="g.gpkg") == "r18 grid ready: 935 cells → g.gpkg"
-    assert texts.progress.format(done=1, total=2, cells="10") == "Tile 1/2 · 10 cells"
+    assert "Grid" in texts.name_exists
     assert "zz_grid" in texts.disk_full
     assert "{name}" not in texts.disk_full
 

@@ -47,6 +47,21 @@ def test_list_outputs_newest_first_and_skips_non_grids(tmp_path):
     assert out[0].size_bytes > 100
 
 
+@pytest.mark.parametrize("edit", [
+    lambda r: r["run"].update(cell_count=None),
+    lambda r: r["run"].update(cell_count="n/a"),
+    lambda r: r.update(run=[]),
+    lambda r: r.update(dggs="r17"),
+])
+def test_a_hand_broken_metadata_hides_only_that_grid(tmp_path, edit):
+    make_grid(tmp_path, "good")
+    path = make_grid(tmp_path, "broken") / "metadata.json"
+    record = json.loads(path.read_text())
+    edit(record)
+    path.write_text(json.dumps(record))
+    assert [r.name for r in oi.list_outputs(tmp_path)] == ["good"]
+
+
 def test_hidden_preview_is_not_listed_but_counts_in_the_size(tmp_path):
     make_grid(tmp_path, "g")
     before = oi.load_output(tmp_path, "g").size_bytes

@@ -18,6 +18,15 @@ def test_polygons_for_extent_returns_int64_ids_in_sphere_space():
     assert len(gdf) > 200 and gdf["global_id"].is_unique
 
 
+def test_polygons_for_ids_match_the_clipped_polygons():
+    clipped = engine.polygons_for_extent(17, box(-60.1, -22.3, -60.0, -22.2)).set_index("global_id")
+    ids = clipped.index.to_numpy()[:5]
+    by_id = engine.polygons_for_ids(17, np.r_[ids, ids[:2]]).set_index("global_id")  # repeats are fetched once
+    assert sorted(by_id.index) == sorted(ids)
+    assert all(by_id.geometry[i].equals_exact(clipped.geometry[i], 1e-9) for i in ids)
+    assert engine.polygons_for_ids(17, []).empty
+
+
 def test_cells_for_points_keeps_input_order():
     rng = np.random.default_rng(1)
     lon = rng.uniform(-60.1, -60.0, 200)
