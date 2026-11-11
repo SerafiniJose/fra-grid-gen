@@ -9,8 +9,12 @@ dggridR), which is not part of this repository.
 - Outputs go to `~/module_results/fra_grid_generator/<name>/`. Each folder holds
   `<name>.gpkg` and/or the Shapefile set, `metadata.json` and `aoi.geojson`. The
   GeoPackage also embeds the metadata (`gpkg_metadata`).
+- Optional centroids (r17–r19): a 1 ha north-up square at each cell's centroid, written as a second
+  GeoPackage layer `<name>_centroids` (and `<name>_centroids.shp` with Shapefile). `metadata.json` records it
+  under `"centroids": {"layer": ..., "side_m": 100.0}`, or `null`.
 - Map preview: every run also writes a hidden `.preview.pmtiles` (cell outlines, `global_id` only) into
-  the grid folder with tippecanoe, so "Show on map" works at any size. It is not a deliverable: it is not in
+  the grid folder with tippecanoe, so "Show on map" works at any size. The centroids, when present, are a
+  second source-layer (`centroids`) of the same archive from zoom 12, drawn as their own map layer. It is not a deliverable: it is not in
   `metadata.json`'s `run.files` nor in the file lists, and it goes with the folder. `metadata.json` records it as
   `"preview": {"file": ".preview.pmtiles", "minzoom": m, "maxzoom": M}`, or `null` when it was skipped
   (tippecanoe missing or failing only skips the preview, with a warning; the grid is kept). Zoom ranges:
@@ -34,62 +38,10 @@ dggridR), which is not part of this repository.
 - In-app help: the left drawer's About and Documentation open Markdown pages from
   `component/doc/<locale>/` (`about.md`, `documentation.md`). Keep the level table and the correction
   constants there in sync with `component/parameter/grid.py` (`tests/test_docs.py` checks the cell counts).
-
-## Run
-
-```bash
-micromamba create -f sepal_environment.yml        # env "fra-grid", includes the dggrid and tippecanoe binaries
-micromamba run -n fra-grid ./run_solara.sh        # http://localhost:8911
-micromamba run -n fra-grid ./run_voila.sh         # ui.ipynb under voila, as on SEPAL: http://localhost:8866
-```
-
-Or `micromamba activate fra-grid` first, then `./run_solara.sh`. A local run needs SEPAL dev
-credentials in a `.env` file at the repo root (both launchers load it through `local_env.sh`): `PYSEPAL_DEV_AUTH=1`,
-`LOCAL_SEPAL_USER`, `LOCAL_SEPAL_PASSWORD` and `SEPAL_HOST`. Never commit `.env` (it is git-ignored).
-`run_voila.sh` registers the notebook's SEPAL kernel name (`venv-fra-grid-gen`) for the env's Python in a
-private `JUPYTER_PATH`, so a local machine needs no extra kernel.
-
-On SEPAL the module runs through `ui.ipynb` (kernel `venv-fra-grid-gen`). There the map preview's
-tile server is reached through SEPAL's jupyter-server-proxy (`LOCALTILESERVER_CLIENT_PREFIX`, copied to
-`VECTORTILESERVER_CLIENT_PREFIX` at startup); locally through the jupyter-loopback comm bridge.
-
-Environment overrides (all optional):
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `FRA_GRID_RESULTS_DIR` | `~/module_results/fra_grid_generator` | output root |
-| `FRA_GRID_SCRATCH` | `<tmp>/fra_grid_<uid>` | GDAL `CPL_TMPDIR` |
-| `FRA_GRID_LOCAL_SCRATCH` | `/var/tmp/fra_grid_<uid>` | dggrid work dir, temporary GeoPackage |
-| `FRA_GRID_DGGRID` | `$CONDA_PREFIX/bin/dggrid` | dggrid executable |
-
-## Test
-
-```bash
-micromamba run -n fra-grid pytest -q
-```
-
-Golden tests (`-m golden`) compare against the original R/dggridR r17 cells and need
-`reference_data/output/isea3hr17_528.*`, taken from the FRA reference archive
-`hexagonos_19_03.zip` (not in this repository). Without it they are skipped:
-
-```bash
-unzip -j hexagonos_19_03.zip 'output/isea3hr17_528.*' -d reference_data/output/
-```
-
-## Manual check on SEPAL (before each release)
-
-1. Chaco box (−60.10, −22.40, −60.00, −22.30), r17, GeoPackage + Shapefile: 330 cells, two tiles, both formats in the folder.
-2. The same box at r19: the warning-free run finishes, and `fra_r17_id` is filled in.
-3. An ADMIN2 unit at r17: the summary card appears in a few seconds, and the pill shows tile milestones.
-4. Generate a multi-tile run: the app switches to the Outputs tab, whose job card shows each step (cells,
-   Shapefile, PMTiles map preview, files), the elapsed time and the time left. When it finishes the card
-   says "Ready" for 2 s, then the new grid's card opens in the list (one card open at a time; a click on a
-   card's header opens or closes it, the eye shows it on the map without opening it). Cancel another run:
-   you get a cancel toast, the card keeps the reason until Dismiss, and no folder is left behind.
-5. Delete a grid shown on the map: its layer disappears and the folder is gone.
-6. Show a grid of 1M+ cells on the map: the outlines appear from its min zoom, the AOI outline and the
-   zoom hint below it, and tiles load through the proxy (no `blob:` URLs in the network tab).
-7. Switch the language to Spanish: every label changes.
+  The About page opens when the app starts. Locales: `en`, `es-ES`, `fr-FR`, `pt-PT` (messages in
+  `component/message/<locale>/locale.json`); the header's language selector lists the folders.
+- Map: the layers control offers the SEPAL basemap (light or dark with the theme) and Google Satellite. The
+  grid, centroids and AOI outlines follow the theme's primary colour.
 
 ## Licence note
 
