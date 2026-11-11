@@ -40,11 +40,14 @@ dggridR), which is not part of this repository.
 ```bash
 micromamba create -f sepal_environment.yml        # env "fra-grid", includes the dggrid and tippecanoe binaries
 micromamba run -n fra-grid ./run_solara.sh        # http://localhost:8911
+micromamba run -n fra-grid ./run_voila.sh         # ui.ipynb under voila, as on SEPAL: http://localhost:8866
 ```
 
 Or `micromamba activate fra-grid` first, then `./run_solara.sh`. A local run needs SEPAL dev
-credentials in a `.env` file at the repo root (`run_solara.sh` sources it): `PYSEPAL_DEV_AUTH=1`,
+credentials in a `.env` file at the repo root (both launchers load it through `local_env.sh`): `PYSEPAL_DEV_AUTH=1`,
 `LOCAL_SEPAL_USER`, `LOCAL_SEPAL_PASSWORD` and `SEPAL_HOST`. Never commit `.env` (it is git-ignored).
+`run_voila.sh` registers the notebook's SEPAL kernel name (`venv-fra-grid-gen`) for the env's Python in a
+private `JUPYTER_PATH`, so a local machine needs no extra kernel.
 
 On SEPAL the module runs through `ui.ipynb` (kernel `venv-fra-grid-gen`). There the map preview's
 tile server is reached through SEPAL's jupyter-server-proxy (`LOCALTILESERVER_CLIENT_PREFIX`, copied to
