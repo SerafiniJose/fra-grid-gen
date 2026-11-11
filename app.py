@@ -28,6 +28,7 @@ from component.scripts.scratch import cleanup_local_scratch, configure_gdal_tmpd
 from component.scripts.tile_proxy import borrow_localtileserver_prefix, loopback_bridge_needed, prefer_http_proxy
 from component.tile.aoi_tile import AoiTile
 from component.tile.grid_tile import GridTile
+from component.widget.dialog_nudge import NUDGE_CSS
 from component.tile.outputs_tile import OutputsTile
 from component.widget.doc_page import DocPage
 
@@ -169,7 +170,7 @@ def Page():
     sepal_map = solara.use_memo(create_map, [id(gee_interface)])
 
     solara.Title(t("app.title"))
-    solara.Style(".dialog-content { overflow-x: hidden !important; }")
+    solara.Style(".dialog-content { overflow-x: hidden !important; }" + NUDGE_CSS)
     # jupyter-loopback comm bridge (local runs), in the page from the first
     # render so tile-URL interception is live before a PMTiles layer is added.
     loopback_bridge = solara.use_memo(_loopback_bridge_widget, [])

@@ -11,6 +11,7 @@ import reacton.ipyvuetify as rv
 import solara
 
 from component.i18n import t
+from component.widget.dialog_nudge import nudging_dialog
 
 MUTED = "opacity: 0.7;"
 
@@ -37,7 +38,7 @@ def ConfirmDialog(
 
     Args:
         open: bool — whether the dialog is shown.
-        on_cancel: callback() — dismiss without acting (also on ESC / outside click).
+        on_cancel: callback() — dismiss without acting (also on ESC; an outside click only nudges).
         on_confirm: callback() — act; the caller is responsible for closing.
         title: dialog title.
         message: dialog body copy.
@@ -51,12 +52,7 @@ def ConfirmDialog(
         confirm_label = t("dialog.confirm_default_label")
     # A plain confirm keeps its narrow box; file paths need the extra room,
     # or every path wraps over three lines.
-    with rv.Dialog(
-        v_model=open,
-        on_v_model=lambda v: None if v else on_cancel(),
-        max_width="440px" if details else "380px",
-        eager=True,
-    ):
+    with nudging_dialog(open, on_cancel, max_width="440px" if details else "380px", eager=True):
         with rv.Card():
             with rv.CardTitle():
                 solara.Text(title)

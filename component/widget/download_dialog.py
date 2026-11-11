@@ -17,6 +17,7 @@ from component.parameter import grid as g
 from component.scripts.notify_bridge import ERROR_TOAST_TIMEOUT
 from component.scripts.scratch import local_scratch_dir
 from component.scripts.writers import export_zip
+from component.widget.dialog_nudge import nudging_dialog
 
 logger = logging.getLogger(g.LOGGER_NAME)
 
@@ -54,7 +55,7 @@ def DownloadDialog(output, on_close, notifier):
     # FileDownload resets whenever ``data`` changes: keep one callable per choice.
     data = solara.use_memo(lambda: build, [output and output.name, layer, fmt])
 
-    with rv.Dialog(v_model=output is not None, on_v_model=lambda v: None if v else on_close(), max_width="400px"):
+    with nudging_dialog(output is not None, on_close, max_width="400px"):
         if output is not None:
             with rv.Card():
                 with rv.CardTitle():

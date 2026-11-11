@@ -7,6 +7,7 @@ import solara
 
 from component.i18n import t
 from component.scripts.writers import human_size
+from component.widget.dialog_nudge import nudging_dialog
 
 _MONO = "display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; overflow-wrap: anywhere;"
 
@@ -69,7 +70,7 @@ def metadata_sections(record: dict) -> list:
 @solara.component
 def MetadataDialog(output, on_close, plan=None):
     open_ = output is not None
-    with rv.Dialog(v_model=open_, on_v_model=lambda v: None if v else on_close(), max_width="560px", scrollable=True):
+    with nudging_dialog(open_, on_close, max_width="560px", scrollable=True):
         if output is None:
             return
         with rv.Card():

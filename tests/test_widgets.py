@@ -100,3 +100,27 @@ def test_confirm_dialog_renders_and_confirms():
         assert clicks == ["ok"]
     finally:
         rc.close()
+
+
+def test_confirm_dialog_nudges_on_outside_click_and_closes_on_esc():
+    from component.widget.dialog_nudge import nudge_class
+
+    cancels = []
+
+    @solara.component
+    def Host():
+        ConfirmDialog(open=True, on_cancel=lambda: cancels.append(1), on_confirm=lambda: None)
+
+    box, rc = reacton.render(Host(), handle_error=False)
+    try:
+        dialog = rc.find(v.Dialog).widget
+        assert dialog.persistent and dialog.no_click_animation and not dialog.content_class
+        dialog.fire_event("click:outside", {})
+        assert rc.find(v.Dialog).widget.content_class == nudge_class(1)
+        dialog.fire_event("click:outside", {})
+        assert rc.find(v.Dialog).widget.content_class == nudge_class(2) != nudge_class(1)
+        assert cancels == []
+        dialog.fire_event("keydown.esc", {})
+        assert cancels == [1]
+    finally:
+        rc.close()
