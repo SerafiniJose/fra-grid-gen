@@ -21,6 +21,7 @@ from component.i18n import app_available_locales, reset_translator, t, use_app_l
 from component.model.state_manager import app_state
 from component.parameter import grid as g
 from component.parameter.directory import results_dir
+from component.scripts.aoi_prep import patch_geojson_to_ee
 from component.scripts.map_layers import sync_draw_control_visibility
 from component.scripts.notify_bridge import install_task_log_handler
 from component.scripts.outputs_index import STALE_AGE_S, cleanup_stale
@@ -41,6 +42,8 @@ install_task_log_handler()
 # the comm bridge then. Before any TileClient: they are built on "Show on map".
 borrow_localtileserver_prefix()
 prefer_http_proxy()
+# Point shapefiles as AOI: pysepal 4.1.0 sends MultiPoint with geodesic, EE refuses it.
+patch_geojson_to_ee()
 # GDAL scratch files must never land in the read-only CWD on SEPAL.
 configure_gdal_tmpdir()
 # Leftovers of a run killed mid-write (server restart, instance stop).

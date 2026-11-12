@@ -85,7 +85,8 @@ def prepare_aoi(gdf, *, method: str, label: str, admin_code=None, source=None) -
     types = shapely.get_type_id(parts)
 
     n_points = None
-    if method == "POINTS" and (types == _POINT).any():
+    # Points from any source (CSV picker, point shapefile, asset), unless polygons are present.
+    if (types == _POINT).any() and not (types == _POLYGON).any():
         coords = np.unique(shapely.get_coordinates(parts[types == _POINT]), axis=0)
         geom = MultiPoint(coords)
         n_points = len(coords)
@@ -206,3 +207,29 @@ def aoi_info_from_result(result) -> AoiInfo:
     except Exception as exc:  # network / EE failures become a readable card
         raise AoiError("fetch", str(exc)) from exc
     return prepare_aoi(gdf, method=result.method, label=label, admin_code=result.admin, source=source)
+
+
+def patch_geojson_to_ee() -> None:
+    """Let point vector files reach Earth Engine.
+
+    shortcut: pysepal 4.1.0 ``geojson_to_ee`` sets ``geodesic`` on every
+    non-Point geometry and EE rejects it on MultiPoint; drop this once pysepal
+    skips all point types.
+    """
+    import ee
+    from pysepal.scripts import utils as su
+
+    original = su.geojson_to_ee
+    if getattr(original, "_fra_patched", False):
+        return
+
+    def geojson_to_ee(geo_json, geodesic=False, encoding="utf-8"):
+        if geo_json["type"] != "FeatureCollection":
+            return original(geo_json, geodesic, encoding)
+        for feature in geo_json["features"]:
+            if feature["geometry"]["type"] not in ("Point", "MultiPoint"):
+                feature["geometry"]["geodesic"] = geodesic
+        return ee.FeatureCollection(geo_json)
+
+    geojson_to_ee._fra_patched = True
+    su.geojson_to_ee = geojson_to_ee

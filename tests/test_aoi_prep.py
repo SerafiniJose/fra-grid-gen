@@ -61,6 +61,11 @@ def test_points_are_deduplicated_and_have_no_area():
     assert info.area_km2 == 0 and all(v == 0 for v in info.perimeter_km.values())
 
 
+def test_point_vector_file_is_a_points_aoi():
+    info = prepare_aoi(_gdf(MultiPoint([(10, 5), (12, 6)])), method="SHAPE", label="f")
+    assert info.is_points and info.n_points == 2
+
+
 def test_points_wider_than_180_degrees_are_accepted():
     info = prepare_aoi(_gdf(Point(-50, -10), Point(140, 35)), method="POINTS", label="pts")
     assert info.n_points == 2 and info.bbox == (-50, -10, 140, 35)
@@ -122,3 +127,16 @@ def test_feature_collection_export_reads_and_removes_temp_file(tmp_path, monkeyp
     gdf = aoi_prep._feature_collection_gdf(object())
     assert len(gdf) == 1 and written and not written[0].exists()
 
+
+
+def test_patched_geojson_to_ee_skips_geodesic_on_multipoint(monkeypatch):
+    import ee
+    from pysepal.scripts import utils as su
+
+    monkeypatch.setattr(su, "geojson_to_ee", su.geojson_to_ee)  # restored after the test
+    monkeypatch.setattr(ee, "FeatureCollection", lambda gj: gj)
+    aoi_prep.patch_geojson_to_ee()
+    gj = _gdf(MultiPoint([(10, 5), (12, 6)]), box(0, 0, 1, 1)).__geo_interface__
+    out = su.geojson_to_ee(gj)
+    assert "geodesic" not in out["features"][0]["geometry"]
+    assert out["features"][1]["geometry"]["geodesic"] is False
